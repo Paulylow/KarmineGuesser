@@ -1,12 +1,19 @@
 // --- 1. CONFIGURATION ---
-const targetY = 500; // Coordonnée Y de la bonne réponse
-const targetX = 500; // Coordonnée X de la bonne réponse
+const targetY = 500; // Coordonnée Y de la bonne réponse (à ajuster)
+const targetX = 500; // Coordonnée X de la bonne réponse (à ajuster)
 const maxScore = 5000;
 
-// --- 2. 360 PANORAMA ---
+// --- 2. 360 PANORAMA (Mode Cubemap) ---
 const viewer = pannellum.viewer('panorama', {
-    "type": "equirectangular",
-    "panorama": "panoramas/pano1.jpg", 
+    "type": "cubemap",
+    "cubeMap": [
+        "panoramas/Lieu1/panorama_0.jpg", // Devant
+        "panoramas/Lieu1/panorama_1.jpg", // Droite
+        "panoramas/Lieu1/panorama_2.jpg", // Arrière
+        "panoramas/Lieu1/panorama_3.jpg", // Gauche
+        "panoramas/Lieu1/panorama_4.png", // Haut (Vérifie bien que c'est un .png d'après ton screen !)
+        "panoramas/Lieu1/panorama_5.jpg"  // Bas
+    ],
     "autoLoad": true,
     "showZoomCtrl": false,
     "mouseZoom": true
@@ -21,15 +28,15 @@ const map = L.map('map', {
     attributionControl: false
 });
 
-const bounds = [[0, 0], [1000, 1000]]; 
-L.imageOverlay('maps/map.png', bounds).addTo(map);
+const bounds = [[0, 0], [1000, 1000]]; // Dimensions de référence pour ta carte SVG
+L.imageOverlay('maps/map.svg', bounds).addTo(map); // <--- Intégration de la map en .svg
 map.fitBounds(bounds);
 
 let marker = null;
 const guessBtn = document.getElementById('guess-btn');
 const mapContainer = document.getElementById('map-container');
 
-// Fix pour redessiner la carte après l'animation
+// Fix pour redessiner la carte après l'animation d'agrandissement
 mapContainer.addEventListener('transitionend', function() {
     map.invalidateSize();
 });
@@ -58,7 +65,7 @@ guessBtn.addEventListener('click', function() {
     // Calcul de la distance
     const distance = Math.sqrt(Math.pow(targetX - clickX, 2) + Math.pow(targetY - clickY, 2));
 
-    // Calcul du score
+    // Calcul du score (Ajuste le * 5 selon la difficulté voulue)
     let score = Math.round(maxScore - (distance * 5)); 
     if (score < 0) score = 0;
 
