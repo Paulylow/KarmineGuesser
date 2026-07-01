@@ -6,30 +6,30 @@ const maxScore = 5000;
 // --- 2. 360 PANORAMA ---
 const viewer = pannellum.viewer('panorama', {
     "type": "equirectangular",
-    "panorama": "pano1.jpg", 
+    "panorama": "panoramas/pano1.jpg", 
     "autoLoad": true,
     "showZoomCtrl": false,
-    "mouseZoom": false // Évite de zoomer dans le jeu quand on molette sur la carte
+    "mouseZoom": true
 });
 
 // --- 3. LA CARTE ---
 const map = L.map('map', {
     crs: L.CRS.Simple,
     minZoom: -2,
-    maxZoom: 2,
-    zoomControl: false // On cache les boutons +/- pour que ça fasse plus propre
+    maxZoom: 3, 
+    zoomControl: false,
+    attributionControl: false
 });
 
-const bounds = [[0, 0], [1000, 1000]]; // Taille de ton image map.png
-L.imageOverlay('map.png', bounds).addTo(map);
+const bounds = [[0, 0], [1000, 1000]]; 
+L.imageOverlay('maps/map.png', bounds).addTo(map);
 map.fitBounds(bounds);
 
 let marker = null;
 const guessBtn = document.getElementById('guess-btn');
 const mapContainer = document.getElementById('map-container');
 
-// ASTUCE : Leaflet bug parfois quand sa taille CSS change (effet d'agrandissement).
-// Ce code force la carte à se redessiner proprement à la fin de l'animation CSS.
+// Fix pour redessiner la carte après l'animation
 mapContainer.addEventListener('transitionend', function() {
     map.invalidateSize();
 });
@@ -70,7 +70,7 @@ guessBtn.addEventListener('click', function() {
     // Affiche l'écran de résultat
     document.getElementById('result-overlay').classList.remove('hidden');
 
-    // Montrer la bonne réponse sur la carte (optionnel, visible si le joueur ferme la modale plus tard)
+    // Montrer la bonne réponse sur la carte
     L.polyline([[clickY, clickX], [targetY, targetX]], {color: '#00B4D8', weight: 3, dashArray: '10, 10'}).addTo(map);
     L.circleMarker([targetY, targetX], {color: '#0A0A0A', fillColor: '#00B4D8', fillOpacity: 1, radius: 8}).addTo(map);
     
