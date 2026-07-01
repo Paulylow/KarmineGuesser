@@ -1,70 +1,80 @@
-// --- 1. CONFIGURATION DU LIEU ---
-// Coordonnées de la BONNE réponse sur ton image (en pixels ou blocs, à calibrer)
-const targetY = 500; 
-const targetX = 500; 
-const maxScore = 5000; // Score max façon GeoGuessr
+// --- 1. CONFIGURATION ---
+const targetY = 500; // Coordonnée Y de la bonne réponse
+const targetX = 500; // Coordonnée X de la bonne réponse
+const maxScore = 5000;
 
-// --- 2. INITIALISATION DU PANORAMA (Pannellum) ---
-// Remplace 'pano1.jpg' par ton image equirectangulaire 360°
-viewer = pannellum.viewer('panorama', {
+// --- 2. 360 PANORAMA ---
+const viewer = pannellum.viewer('panorama', {
     "type": "equirectangular",
     "panorama": "pano1.jpg", 
     "autoLoad": true,
-    "compass": false,
-    "showZoomCtrl": false
+    "showZoomCtrl": false,
+    "mouseZoom": false // Évite de zoomer dans le jeu quand on molette sur la carte
 });
 
-// --- 3. INITIALISATION DE LA CARTE (Leaflet) ---
-// On utilise CRS.Simple car c'est une image custom (pas la planète Terre)
+// --- 3. LA CARTE ---
 const map = L.map('map', {
     crs: L.CRS.Simple,
     minZoom: -2,
-    maxZoom: 2
+    maxZoom: 2,
+    zoomControl: false // On cache les boutons +/- pour que ça fasse plus propre
 });
 
-// Définir la taille de l'image de ta map (Ex: 1000x1000)
-// Ajuste ces valeurs selon la résolution de ton image "map.png"
-const bounds = [[0, 0], [1000, 1000]]; 
-
-// Remplace 'map.png' par l'image de la map vue de haut de ton serveur
+const bounds = [[0, 0], [1000, 1000]]; // Taille de ton image map.png
 L.imageOverlay('map.png', bounds).addTo(map);
 map.fitBounds(bounds);
 
-let marker = null; // Pour stocker le point cliqué par le joueur
+let marker = null;
+const guessBtn = document.getElementById('guess-btn');
+const mapContainer = document.getElementById('map-container');
 
-// --- 4. LOGIQUE DE JEU (Le clic) ---
+// ASTUCE : Leaflet bug parfois quand sa taille CSS change (effet d'agrandissement).
+// Ce code force la carte à se redessiner proprement à la fin de l'animation CSS.
+mapContainer.addEventListener('transitionend', function() {
+    map.invalidateSize();
+});
+
+// --- 4. CLIQUER SUR LA CARTE ---
 map.on('click', function(e) {
-    // Si un marqueur existe déjà, on le retire (le joueur change d'avis)
     if (marker !== null) {
         map.removeLayer(marker);
     }
 
-    // Récupérer les coordonnées X et Y du clic
-    const clickY = e.latlng.lat;
-    const clickX = e.latlng.lng;
+    // Place le marqueur
+    marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+    
+    // Débloque le bouton "Valider"
+    guessBtn.disabled = false;
+    guessBtn.innerText = "Valider !";
+});
 
-    // Placer un marqueur visuel
-    marker = L.marker([clickY, clickX]).addTo(map);
+// --- 5. VALIDER SON CHOIX ---
+guessBtn.addEventListener('click', function() {
+    if(!marker) return;
 
-    // Calcul de la distance (Théorème de Pythagore simple)
+    const clickY = marker.getLatLng().lat;
+    const clickX = marker.getLatLng().lng;
+
+    // Calcul de la distance
     const distance = Math.sqrt(Math.pow(targetX - clickX, 2) + Math.pow(targetY - clickY, 2));
 
-    // Calcul du score (plus on est loin, plus on perd de points)
-    // Le "/ 5" est un facteur de difficulté, à ajuster selon la taille de ta map !
+    // Calcul du score
     let score = Math.round(maxScore - (distance * 5)); 
     if (score < 0) score = 0;
 
-    // Afficher les résultats
-    document.getElementById('scoreBoard').style.display = 'block';
-    document.getElementById('scoreDisplay').innerText = score;
+    // Affiche le score sur l'écran de fin
     document.getElementById('distanceDisplay').innerText = Math.round(distance);
+    document.getElementById('scoreDisplay').innerText = score;
+    document.getElementById('header-score').innerText = score;
     
-    // (Bonus visuel) Tracer une ligne entre le clic et la vraie réponse
+    // Affiche l'écran de résultat
+    document.getElementById('result-overlay').classList.remove('hidden');
+
+    // Montrer la bonne réponse sur la carte (optionnel, visible si le joueur ferme la modale plus tard)
     L.polyline([[clickY, clickX], [targetY, targetX]], {color: '#00B4D8', weight: 3, dashArray: '10, 10'}).addTo(map);
-    
-    // Placer un marqueur sur la vraie réponse
     L.circleMarker([targetY, targetX], {color: '#0A0A0A', fillColor: '#00B4D8', fillOpacity: 1, radius: 8}).addTo(map);
     
-    // Désactiver les clics une fois joué
+    // Bloque la carte
     map.off('click');
+    guessBtn.disabled = true;
 });
