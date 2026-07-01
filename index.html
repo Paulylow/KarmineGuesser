@@ -15,7 +15,6 @@
 </head>
 <body>
 
-    <!-- Interface du haut -->
     <header class="game-header">
         <div class="logo">Karmine<em>Guesser</em></div>
         <div class="game-stats">
@@ -34,10 +33,8 @@
         </div>
     </header>
 
-    <!-- Le fond 360° -->
     <div id="panorama"></div>
 
-    <!-- La mini-map -->
     <div id="map-wrapper">
         <div class="map-hover-area" id="map-container">
             <div id="map"></div>
@@ -45,14 +42,13 @@
         </div>
     </div>
 
-    <!-- L'écran de résultat -->
-    <div id="result-overlay" class="overlay hidden">
-        <div class="result-modal">
-            <h2 class="art-title">Résultat</h2>
-            <p class="distance-text">Distance : <span id="distanceDisplay" class="cyan-text">0</span></p>
-            <p class="score-num">+<span id="scoreDisplay">0</span> pts</p>
-            <button class="hero-btn" id="next-btn">Lieu suivant</button>
-        </div>
+    <div id="result-overlay" class="overlay hidden"></div>
+
+    <div id="result-modal" class="result-modal hidden">
+        <h2 class="art-title">Résultat</h2>
+        <p class="distance-text">Distance : <span id="distanceDisplay" class="cyan-text">0</span></p>
+        <p class="score-num">+<span id="scoreDisplay">0</span> pts</p>
+        <p class="waiting-text" id="waiting-msg">En attente des autres joueurs... (<span id="auto-next-timer">5</span>s)</p>
     </div>
 
     <script src="app.js"></script>
