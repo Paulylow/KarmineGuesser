@@ -2,9 +2,8 @@
 // 1. CONFIGURATION
 // ==========================================
 
-// ⚠️ N'oublie pas de recalculer ces coordonnées avec F12 sur ta nouvelle carte 1427x1427 !
 const allLocations = [
-    { id: 'Lieu1', x: 500, y: 500 }, 
+    { id: 'Lieu1', x: 500, y: 500 }, // Remplacer par les vraies coordonées
     { id: 'Lieu2', x: 500, y: 500 }, 
     { id: 'Lieu3', x: 500, y: 500 },
     { id: 'Lieu4', x: 500, y: 500 },
@@ -21,7 +20,6 @@ let totalScore = 0;
 let gameLocations = []; 
 let marker = null;
 
-// Variables pour les chronos
 let timerInterval;
 let waitInterval;
 let timeLeft = roundTime;
@@ -79,8 +77,8 @@ const map = L.map('map', {
     maxZoom: 4, 
     zoomControl: false, 
     attributionControl: false,
-    maxBounds: bounds,         // 📍 Empêche de glisser en dehors de la carte !
-    maxBoundsViscosity: 1.0    // 📍 Rend les bords de la carte solides comme un mur
+    maxBounds: bounds,         
+    maxBoundsViscosity: 1.0    
 });
 
 L.imageOverlay('maps/map.png', bounds).addTo(map);
@@ -92,6 +90,15 @@ const guessBtn = document.getElementById('guess-btn');
 const mapWrapper = document.getElementById('map-wrapper');
 const timerDisplay = document.getElementById('timer-display');
 const msgBox = document.getElementById('waiting-msg');
+
+// 📍 Fix Leaflet pour recalculer la carte après l'agrandissement CSS
+document.getElementById('map-container').addEventListener('transitionend', function() {
+    map.invalidateSize();
+    // On force la carte à se coller parfaitement aux bords carrés si on n'est pas en pleine animation
+    if (!hasValidated) {
+        map.fitBounds(bounds);
+    }
+});
 
 // ==========================================
 // 4. CHRONO PRINCIPAL ET CLICS
@@ -135,7 +142,6 @@ function enableMapClick() {
     map.on('click', function(e) {
         if (hasValidated) return;
         
-        // 🕵️‍♂️ OUTIL DÉVELOPPEUR 
         console.log("Coordonnées -> targetY: " + e.latlng.lat + " | targetX: " + e.latlng.lng);
 
         if (marker !== null) gameLayer.removeLayer(marker);
