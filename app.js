@@ -1,16 +1,30 @@
 // ==========================================
-// 1. CONFIGURATION (MODE DEV)
+// 1. CONFIGURATION (MODE DEV - 19 LIEUX)
 // ==========================================
 
-// Tu as juste à rajouter tes nouveaux lieux à la suite ici !
 const allLocations = [
+    // Tes 6 lieux déjà configurés (Ne les touche pas !)
     { id: 'Lieu1', x: 634.0625, y: 809.5625 },
     { id: 'Lieu2', x: 377.5, y: 779.4375 }, 
     { id: 'Lieu3', x: 496.375, y: 992.4375 },
     { id: 'Lieu4', x: 293.06264472481286, y: 958.6056737754375 },
     { id: 'Lieu5', x: 505.5625, y: 730.3125 },
-    { id: 'Lieu6', x: 273.3125, y: 912.1875 }
-    // { id: 'Lieu7', x: 500, y: 500 }, <--- Exemple pour le prochain !
+    { id: 'Lieu6', x: 273.3125, y: 912.1875 },
+    
+    // ⚠️ Les nouveaux lieux à configurer (Regarde ta console F12)
+    { id: 'Lieu7', x: 500, y: 500 },
+    { id: 'Lieu8', x: 500, y: 500 },
+    { id: 'Lieu9', x: 500, y: 500 },
+    { id: 'Lieu10', x: 500, y: 500 },
+    { id: 'Lieu11', x: 500, y: 500 },
+    { id: 'Lieu12', x: 500, y: 500 },
+    { id: 'Lieu13', x: 500, y: 500 },
+    { id: 'Lieu14', x: 500, y: 500 },
+    { id: 'Lieu15', x: 500, y: 500 },
+    { id: 'Lieu16', x: 500, y: 500 },
+    { id: 'Lieu17', x: 500, y: 500 },
+    { id: 'Lieu18', x: 500, y: 500 },
+    { id: 'Lieu19', x: 500, y: 500 }
 ];
 
 const maxScorePerRound = 5000;
@@ -18,11 +32,12 @@ const totalRounds = allLocations.length;
 
 let currentRound = 1;
 let totalScore = 0;
-let gameLocations = allLocations; // Pas de mélange, reste dans l'ordre 1, 2, 3...
+// En mode Dev, on garde l'ordre exact de 1 à 19
+let gameLocations = allLocations; 
 let marker = null;
 let hasValidated = false;
 
-// Met à jour dynamiquement le nombre total de rounds dans l'interface en haut
+// Met à jour l'interface automatiquement (19)
 document.getElementById('total-rounds-display').innerText = totalRounds;
 
 // ==========================================
@@ -81,7 +96,6 @@ const guessBtn = document.getElementById('guess-btn');
 const mapWrapper = document.getElementById('map-wrapper');
 const nextBtn = document.getElementById('next-btn');
 
-// L'observer ultra-fluide pour éviter le fond noir au survol
 const resizeObserver = new ResizeObserver(() => {
     map.invalidateSize({ pan: false });
 });
@@ -94,7 +108,7 @@ document.getElementById('map-container').addEventListener('transitionend', funct
 });
 
 // ==========================================
-// 4. LOGIQUE DES RONDS (SANS CHRONO)
+// 4. LOGIQUE DES ROUNDS (SANS CHRONO)
 // ==========================================
 
 function startRound() {
@@ -107,7 +121,7 @@ function enableMapClick() {
     map.on('click', function(e) {
         if (hasValidated) return;
         
-        // 🕵️‍♂️ CONSOLE LOG : Copie ces coordonnées pour tes nouveaux lieux !
+        // 🕵️‍♂️ CONSOLE LOG : Copie ces coordonnées !
         console.log("📍 " + gameLocations[currentRound - 1].id + " -> x: " + e.latlng.lng + ", y: " + e.latlng.lat);
 
         if (marker !== null) gameLayer.removeLayer(marker);
@@ -144,7 +158,6 @@ function processRoundResult() {
         const distance = Math.sqrt(Math.pow(targetLocation.x - clickX, 2) + Math.pow(targetLocation.y - clickY, 2));
         let displayDistance = Math.round(distance);
         
-        // Tolérance des 2 blocs conservée pour le fun
         if (displayDistance <= 2) {
             displayDistance = 0; 
             score = maxScorePerRound; 
@@ -181,7 +194,7 @@ function processRoundResult() {
 
 nextBtn.addEventListener('click', () => {
     if (currentRound >= totalRounds) {
-        alert("Tu as passé en revue tous tes lieux actuels !");
+        alert("Félicitations, tu as configuré tes 19 lieux ! Tu peux récupérer tes coordonnées dans la console (F12).");
         location.reload(); 
         return;
     }
@@ -203,5 +216,5 @@ nextBtn.addEventListener('click', () => {
     }, 500);
 });
 
-// Lancement initial direct
+// Lancement initial
 startRound();
