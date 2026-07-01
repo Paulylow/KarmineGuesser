@@ -29,7 +29,7 @@ const map = L.map('map', {
 });
 
 const bounds = [[0, 0], [1000, 1000]]; // Dimensions de référence pour ta carte SVG
-L.imageOverlay('maps/map.svg', bounds).addTo(map); // <--- Intégration de la map en .svg
+L.imageOverlay('maps/map.png', bounds).addTo(map); // <--- Intégration de la map en .svg
 map.fitBounds(bounds);
 
 let marker = null;
