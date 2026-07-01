@@ -1,7 +1,8 @@
 // ==========================================
-// 1. CONFIGURATION (VRAIES COORDONNÉES)
+// 1. CONFIGURATION (MODE DEV)
 // ==========================================
 
+// Tu as juste à rajouter tes nouveaux lieux à la suite ici !
 const allLocations = [
     { id: 'Lieu1', x: 634.0625, y: 809.5625 },
     { id: 'Lieu2', x: 377.5, y: 779.4375 }, 
@@ -9,23 +10,20 @@ const allLocations = [
     { id: 'Lieu4', x: 293.06264472481286, y: 958.6056737754375 },
     { id: 'Lieu5', x: 505.5625, y: 730.3125 },
     { id: 'Lieu6', x: 273.3125, y: 912.1875 }
+    // { id: 'Lieu7', x: 500, y: 500 }, <--- Exemple pour le prochain !
 ];
 
 const maxScorePerRound = 5000;
-const totalRounds = 5;
-const roundTime = 30; 
+const totalRounds = allLocations.length; 
 
 let currentRound = 1;
 let totalScore = 0;
-let gameLocations = []; 
+let gameLocations = allLocations; // Pas de mélange, reste dans l'ordre 1, 2, 3...
 let marker = null;
-
-let timerInterval;
-let waitInterval;
-let timeLeft = roundTime;
-let transitionTime = 5;
 let hasValidated = false;
-let isTransitioning = false;
+
+// Met à jour dynamiquement le nombre total de rounds dans l'interface en haut
+document.getElementById('total-rounds-display').innerText = totalRounds;
 
 // ==========================================
 // 2. PRÉPARATION 360 (PANNELLUM)
@@ -45,15 +43,6 @@ allLocations.forEach(loc => {
         ]
     };
 });
-
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-}
-shuffleArray(allLocations);
-gameLocations = allLocations.slice(0, totalRounds); 
 
 const viewer = pannellum.viewer('panorama', {
     "default": {
@@ -90,9 +79,9 @@ const gameLayer = L.layerGroup().addTo(map);
 
 const guessBtn = document.getElementById('guess-btn');
 const mapWrapper = document.getElementById('map-wrapper');
-const timerDisplay = document.getElementById('timer-display');
-const msgBox = document.getElementById('waiting-msg');
+const nextBtn = document.getElementById('next-btn');
 
+// L'observer ultra-fluide pour éviter le fond noir au survol
 const resizeObserver = new ResizeObserver(() => {
     map.invalidateSize({ pan: false });
 });
@@ -105,77 +94,22 @@ document.getElementById('map-container').addEventListener('transitionend', funct
 });
 
 // ==========================================
-// 4. ANIMATION DE ROUND & CHRONO
+// 4. LOGIQUE DES RONDS (SANS CHRONO)
 // ==========================================
 
-function announceRound() {
-    const announcer = document.getElementById('round-announcer');
-    const announcerText = document.getElementById('round-title-text');
-    
-    // 📍 LA RUSE MAGIQUE EST ICI : On force le reset de l'animation CSS
-    announcerText.style.animation = 'none';
-    announcerText.offsetHeight; /* Déclenche un recalcul du navigateur */
-    announcerText.style.animation = null;
-
-    // On met à jour le texte et on affiche l'écran noir
-    announcerText.innerText = "ROUND " + currentRound;
-    announcer.classList.remove('hidden');
-    
-    // On bloque tout pendant l'annonce
-    map.off('click');
-    guessBtn.disabled = true;
-    timerDisplay.innerText = roundTime;
-    
-    // Au bout de 2 secondes, on cache l'annonce et on lance le chrono
-    setTimeout(() => {
-        announcer.classList.add('hidden');
-        
-        map.invalidateSize(); 
-        map.fitBounds(bounds);
-        
-        enableMapClick();
-        startTimer();
-    }, 2000);
-}
-
-function startTimer() {
-    timeLeft = roundTime;
+function startRound() {
     hasValidated = false;
-    isTransitioning = false;
-    
-    timerDisplay.innerText = timeLeft;
-    timerDisplay.classList.remove('timer-warning');
-    
-    clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-        timeLeft--;
-        timerDisplay.innerText = timeLeft;
-        
-        if (timeLeft <= 5 && !hasValidated) {
-            timerDisplay.classList.add('timer-warning');
-        }
-
-        if (hasValidated && !isTransitioning) {
-            msgBox.innerHTML = `En attente des autres joueurs... (<span id="auto-next-timer">${timeLeft}</span>s)`;
-        }
-        
-        if (timeLeft <= 0) {
-            clearInterval(timerInterval);
-            timerDisplay.classList.remove('timer-warning');
-            
-            if (!hasValidated) {
-                processRoundResult(); 
-            } else {
-                startWaitingLobby(); 
-            }
-        }
-    }, 1000);
+    document.getElementById('timer-display').innerText = "DEV";
+    enableMapClick();
 }
 
 function enableMapClick() {
     map.on('click', function(e) {
         if (hasValidated) return;
         
+        // 🕵️‍♂️ CONSOLE LOG : Copie ces coordonnées pour tes nouveaux lieux !
+        console.log("📍 " + gameLocations[currentRound - 1].id + " -> x: " + e.latlng.lng + ", y: " + e.latlng.lat);
+
         if (marker !== null) gameLayer.removeLayer(marker);
         marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(gameLayer);
         
@@ -189,14 +123,13 @@ guessBtn.addEventListener('click', () => {
 });
 
 // ==========================================
-// 5. CINÉMATIQUE DE RÉSULTAT ET SCORE
+// 5. CINÉMATIQUE DE RÉSULTAT
 // ==========================================
 
 function processRoundResult() {
     hasValidated = true; 
     map.off('click'); 
     guessBtn.disabled = true;
-    timerDisplay.classList.remove('timer-warning');
 
     const targetLocation = gameLocations[currentRound - 1];
     let score = 0;
@@ -211,7 +144,7 @@ function processRoundResult() {
         const distance = Math.sqrt(Math.pow(targetLocation.x - clickX, 2) + Math.pow(targetLocation.y - clickY, 2));
         let displayDistance = Math.round(distance);
         
-        // Marge de tolérance pour un 5000 parfait
+        // Tolérance des 2 blocs conservée pour le fun
         if (displayDistance <= 2) {
             displayDistance = 0; 
             score = maxScorePerRound; 
@@ -222,8 +155,6 @@ function processRoundResult() {
 
         document.getElementById('distanceDisplay').innerText = displayDistance + " blocs";
         L.polyline([[clickY, clickX], [targetLocation.y, targetLocation.x]], {color: '#00B4D8', weight: 3, dashArray: '10, 10'}).addTo(gameLayer);
-    } else {
-        document.getElementById('distanceDisplay').innerText = "Temps écoulé !";
     }
 
     totalScore += score;
@@ -240,49 +171,17 @@ function processRoundResult() {
 
         setTimeout(() => {
             document.getElementById('result-modal').classList.remove('hidden');
-
-            if (timeLeft <= 0) {
-                startWaitingLobby();
-            } else {
-                msgBox.innerHTML = `En attente des autres joueurs... (<span id="auto-next-timer">${timeLeft}</span>s)`;
-            }
         }, 1500);
     }, 500);
 }
 
 // ==========================================
-// 6. COMPTE À REBOURS DE TRANSITION (5s)
+// 6. BOUTON SUIVANT MANUEL
 // ==========================================
 
-function startWaitingLobby() {
-    if(isTransitioning) return;
-    isTransitioning = true;
-    transitionTime = 5;
-
-    function updateMsg() {
-        if (currentRound >= totalRounds) {
-            msgBox.innerHTML = `Partie terminée ! Fin dans <span id="auto-next-timer">${transitionTime}</span>s...`;
-        } else {
-            msgBox.innerHTML = `Prochain round dans <span id="auto-next-timer">${transitionTime}</span>s...`;
-        }
-    }
-    
-    updateMsg();
-
-    clearInterval(waitInterval);
-    waitInterval = setInterval(() => {
-        transitionTime--;
-        updateMsg();
-
-        if (transitionTime <= 0) {
-            clearInterval(waitInterval);
-            goToNextRound();
-        }
-    }, 1000);
-}
-
-function goToNextRound() {
+nextBtn.addEventListener('click', () => {
     if (currentRound >= totalRounds) {
+        alert("Tu as passé en revue tous tes lieux actuels !");
         location.reload(); 
         return;
     }
@@ -298,12 +197,11 @@ function goToNextRound() {
     guessBtn.innerText = "Placer le point";
 
     setTimeout(() => {
+        map.fitBounds(bounds);
         viewer.loadScene(gameLocations[currentRound - 1].id);
-        
-        // Lance l'annonce avec l'animation rafraîchie !
-        announceRound();
+        startRound();
     }, 500);
-}
+});
 
-// Lancement initial
-announceRound();
+// Lancement initial direct
+startRound();
