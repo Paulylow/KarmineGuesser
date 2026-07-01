@@ -67,7 +67,6 @@ body, html {
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
-/* Comportement normal de la minimap (Hover) */
 #map-wrapper:not(.result-mode) .map-hover-area:hover {
     width: 550px;
     height: 400px;
@@ -75,7 +74,13 @@ body, html {
     border-color: var(--cyan);
 }
 
-#map { flex-grow: 1; width: 100%; cursor: crosshair; }
+/* 📍 CORRECTION DU FOND BLANC MOCHE ICI 📍 */
+#map { 
+    flex-grow: 1; 
+    width: 100%; 
+    cursor: crosshair; 
+    background: var(--black) !important; /* Force le fond noir */
+}
 
 .guess-btn {
     width: 100%; padding: 15px; background: var(--cyan); color: var(--black);
@@ -87,24 +92,22 @@ body, html {
 
 /* ===== MODE RESULTAT (Carte au centre) ===== */
 #map-wrapper.result-mode {
-    bottom: 50%; /* On remonte pour centrer */
+    bottom: 50%;
     right: 50%;
-    transform: translate(50%, 40%); /* Un peu au-dessus du centre pour laisser la place au score */
-    z-index: 60; /* Au-dessus du filtre sombre */
+    transform: translate(50%, 40%);
+    z-index: 60;
 }
 
 #map-wrapper.result-mode .map-hover-area {
-    width: 70vw; /* Beaucoup plus grand */
+    width: 70vw;
     height: 55vh;
     max-width: 900px;
     opacity: 1;
     border-color: var(--cyan);
-    pointer-events: none; /* Bloque les clics pendant la cinématique */
+    pointer-events: none;
 }
 
-#map-wrapper.result-mode .guess-btn {
-    display: none; /* Cache le bouton quand on affiche la réponse */
-}
+#map-wrapper.result-mode .guess-btn { display: none; }
 
 /* ===== ECRAN SOMBRE ===== */
 .overlay {
@@ -130,7 +133,6 @@ body, html {
     transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Animation d'apparition de la modale depuis le bas */
 .result-modal.hidden {
     opacity: 0;
     transform: translate(-50%, 50px);
