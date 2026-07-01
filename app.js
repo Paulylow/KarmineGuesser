@@ -13,7 +13,7 @@ const allLocations = [
 
 const maxScorePerRound = 5000;
 const totalRounds = 5;
-const roundTime = 30; // Temps d'un round en secondes
+const roundTime = 30; 
 
 let currentRound = 1;
 let totalScore = 0;
@@ -46,7 +46,6 @@ allLocations.forEach(loc => {
     };
 });
 
-// Mélange des lieux pour faire des parties uniques (5 manches sur les 6 dispos)
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -106,8 +105,35 @@ document.getElementById('map-container').addEventListener('transitionend', funct
 });
 
 // ==========================================
-// 4. CHRONO PRINCIPAL ET CLICS
+// 4. ANIMATION DE ROUND & CHRONO
 // ==========================================
+
+// 📍 NOUVEAU : Fonction qui annonce le round et met le jeu en pause
+function announceRound() {
+    const announcer = document.getElementById('round-announcer');
+    const announcerText = document.getElementById('round-title-text');
+    
+    // On met à jour le texte et on affiche l'écran noir
+    announcerText.innerText = "ROUND " + currentRound;
+    announcer.classList.remove('hidden');
+    
+    // On bloque tout
+    map.off('click');
+    guessBtn.disabled = true;
+    timerDisplay.innerText = roundTime;
+    
+    // Au bout de 2 secondes, on cache l'annonce et on lance le chrono
+    setTimeout(() => {
+        announcer.classList.add('hidden');
+        
+        // Petite sécurité pour s'assurer que Leaflet recalcule la carte après le chargement
+        map.invalidateSize(); 
+        map.fitBounds(bounds);
+        
+        enableMapClick();
+        startTimer();
+    }, 2000);
+}
 
 function startTimer() {
     timeLeft = roundTime;
@@ -160,7 +186,7 @@ guessBtn.addEventListener('click', () => {
 });
 
 // ==========================================
-// 5. CINÉMATIQUE DE RÉSULTAT
+// 5. CINÉMATIQUE DE RÉSULTAT ET SCORE
 // ==========================================
 
 function processRoundResult() {
@@ -171,7 +197,6 @@ function processRoundResult() {
 
     const targetLocation = gameLocations[currentRound - 1];
     let score = 0;
-    let distance = 0;
     
     const pointsToFit = [[targetLocation.y, targetLocation.x]];
 
@@ -180,12 +205,19 @@ function processRoundResult() {
         const clickX = marker.getLatLng().lng;
         pointsToFit.push([clickY, clickX]); 
 
-        distance = Math.sqrt(Math.pow(targetLocation.x - clickX, 2) + Math.pow(targetLocation.y - clickY, 2));
+        const distance = Math.sqrt(Math.pow(targetLocation.x - clickX, 2) + Math.pow(targetLocation.y - clickY, 2));
+        let displayDistance = Math.round(distance);
         
-        score = Math.round(maxScorePerRound - (distance * 3.5)); 
-        if (score < 0) score = 0;
+        // 📍 CORRECTION DE L'ARRONDI : Marge de tolérance pour un 5000 parfait
+        if (displayDistance <= 2) {
+            displayDistance = 0; // On affiche 0
+            score = maxScorePerRound; // On donne les 5000 points purs
+        } else {
+            score = Math.round(maxScorePerRound - (distance * 3.5)); 
+            if (score < 0) score = 0;
+        }
 
-        document.getElementById('distanceDisplay').innerText = Math.round(distance) + " blocs";
+        document.getElementById('distanceDisplay').innerText = displayDistance + " blocs";
         L.polyline([[clickY, clickX], [targetLocation.y, targetLocation.x]], {color: '#00B4D8', weight: 3, dashArray: '10, 10'}).addTo(gameLayer);
     } else {
         document.getElementById('distanceDisplay').innerText = "Temps écoulé !";
@@ -263,15 +295,13 @@ function goToNextRound() {
     guessBtn.innerText = "Placer le point";
 
     setTimeout(() => {
-        map.fitBounds(bounds);
-        
+        // Charge le prochain paysage 360° discrètement derrière l'écran noir
         viewer.loadScene(gameLocations[currentRound - 1].id);
         
-        enableMapClick();
-        startTimer();
+        // Lance l'annonce du nouveau round
+        announceRound();
     }, 500);
 }
 
-// Démarrage initial
-enableMapClick();
-startTimer();
+// 📍 Lancement initial de la première partie !
+announceRound();
