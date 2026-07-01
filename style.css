@@ -11,7 +11,6 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* Empêcher le scroll, l'app prend tout l'écran */
 body, html {
     width: 100vw;
     height: 100vh;
@@ -30,7 +29,7 @@ body, html {
     z-index: 1;
 }
 
-/* ===== UI EN HAUT (Score & Titre) ===== */
+/* ===== UI EN HAUT ===== */
 .game-header {
     position: absolute;
     top: 0;
@@ -64,9 +63,12 @@ body, html {
     pointer-events: auto;
 }
 
-.stat-box { display: flex; flex-direction: column; align-items: center; }
+.stat-box { display: flex; flex-direction: column; align-items: center; min-width: 60px; }
 .stat-label { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; color: #ccc; text-transform: uppercase; letter-spacing: 0.1em; }
-.stat-value { font-family: 'Clash Display', sans-serif; font-size: 24px; color: white; font-weight: 700; }
+.stat-value { font-family: 'Clash Display', sans-serif; font-size: 24px; color: white; font-weight: 700; transition: color 0.3s; }
+
+.timer-warning { color: #ff4757 !important; animation: pulse 1s infinite; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
 /* ===== LA MINIMAP ===== */
 #map-wrapper {
@@ -97,11 +99,7 @@ body, html {
     border-color: var(--cyan);
 }
 
-#map {
-    flex-grow: 1;
-    width: 100%;
-    cursor: crosshair;
-}
+#map { flex-grow: 1; width: 100%; cursor: crosshair; }
 
 .guess-btn {
     width: 100%;
