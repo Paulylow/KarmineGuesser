@@ -5,26 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-width=1.0">
     <title>KarmineGuesser</title>
     
-    <!-- CSS -->
     <link rel="stylesheet" href="style.css">
     
-    <!-- Pannellum (360) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
     <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
     
-    <!-- Leaflet (Map) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
-    <!-- Interface du haut (Score et Round) -->
+    <!-- Interface du haut -->
     <header class="game-header">
         <div class="logo">Karmine<em>Guesser</em></div>
         <div class="game-stats">
             <div class="stat-box">
+                <span class="stat-label">Temps</span>
+                <span class="stat-value" id="timer-display">30</span>
+            </div>
+            <div class="stat-box">
                 <span class="stat-label">Lieu</span>
-                <span class="stat-value">1/5</span>
+                <span class="stat-value"><span id="round-display">1</span>/5</span>
             </div>
             <div class="stat-box">
                 <span class="stat-label">Score</span>
@@ -33,10 +34,10 @@
         </div>
     </header>
 
-    <!-- Le fond 360° en plein écran -->
+    <!-- Le fond 360° -->
     <div id="panorama"></div>
 
-    <!-- La mini-map en bas à droite -->
+    <!-- La mini-map -->
     <div id="map-wrapper">
         <div class="map-hover-area" id="map-container">
             <div id="map"></div>
@@ -44,13 +45,13 @@
         </div>
     </div>
 
-    <!-- L'écran de résultat (caché par défaut) -->
+    <!-- L'écran de résultat -->
     <div id="result-overlay" class="overlay hidden">
         <div class="result-modal">
             <h2 class="art-title">Résultat</h2>
-            <p class="distance-text">Distance : <span id="distanceDisplay" class="cyan-text">0</span> blocs</p>
+            <p class="distance-text">Distance : <span id="distanceDisplay" class="cyan-text">0</span></p>
             <p class="score-num">+<span id="scoreDisplay">0</span> pts</p>
-            <button class="hero-btn" onclick="location.reload()">Lieu suivant</button>
+            <button class="hero-btn" id="next-btn">Lieu suivant</button>
         </div>
     </div>
 
