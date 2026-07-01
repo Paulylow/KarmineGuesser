@@ -54,8 +54,8 @@ body, html {
 }
 
 .map-hover-area {
-    width: 320px;
-    height: 240px;
+    width: 280px;  /* 📍 Largeur de base */
+    height: auto;  /* 📍 La hauteur s'adapte automatiquement */
     background: var(--black);
     border: 3px solid white;
     border-radius: 12px;
@@ -68,18 +68,16 @@ body, html {
 }
 
 #map-wrapper:not(.result-mode) .map-hover-area:hover {
-    width: 550px;
-    height: 400px;
+    width: 480px; /* 📍 Largeur quand on passe la souris */
     opacity: 1;
     border-color: var(--cyan);
 }
 
-/* 📍 CORRECTION DU FOND BLANC MOCHE ICI 📍 */
 #map { 
-    flex-grow: 1; 
     width: 100%; 
+    aspect-ratio: 1 / 1; /* 📍 LE SECRET : Force la zone de carte à rester un carré parfait ! */
     cursor: crosshair; 
-    background: var(--black) !important; /* Force le fond noir */
+    background: var(--black) !important; 
 }
 
 .guess-btn {
@@ -99,9 +97,9 @@ body, html {
 }
 
 #map-wrapper.result-mode .map-hover-area {
-    width: 70vw;
-    height: 55vh;
-    max-width: 900px;
+    width: 65vh; /* 📍 On utilise la hauteur (vh) pour être sûr que le carré rentre dans l'écran */
+    max-width: 800px;
+    height: auto;
     opacity: 1;
     border-color: var(--cyan);
     pointer-events: none;
