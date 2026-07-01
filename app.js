@@ -1,11 +1,10 @@
 // ==========================================
-// 1. CONFIGURATION DES LIEUX ET DU JEU
+// 1. CONFIGURATION
 // ==========================================
 
-// ⚠️ Remplace les "500" par tes vraies coordonnées trouvées avec F12
 const allLocations = [
-    { id: 'Lieu1', x: 665.5, y: 556.625 }, // Celles que tu m'as données !
-    { id: 'Lieu2', x: 500, y: 500 },
+    { id: 'Lieu1', x: 665.5, y: 556.625 }, 
+    { id: 'Lieu2', x: 500, y: 500 }, // Mets tes vrais points ici !
     { id: 'Lieu3', x: 500, y: 500 },
     { id: 'Lieu4', x: 500, y: 500 },
     { id: 'Lieu5', x: 500, y: 500 },
@@ -14,21 +13,19 @@ const allLocations = [
 
 const maxScorePerRound = 5000;
 const totalRounds = 5;
-const roundTime = 30; // 30 secondes par manche
+const roundTime = 30; // Chrono
 
-// Variables de progression
 let currentRound = 1;
 let totalScore = 0;
-let gameLocations = []; // Les 5 lieux tirés au sort
+let gameLocations = []; 
 let marker = null;
 let timerInterval;
 let timeLeft = roundTime;
 
 // ==========================================
-// 2. PRÉPARATION DES SCÈNES (PANNELLUM)
+// 2. PRÉPARATION 360 (PANNELLUM)
 // ==========================================
 
-// On crée l'objet "scenes" qui contient les chemins vers toutes tes images .png
 const pannellumScenes = {};
 allLocations.forEach(loc => {
     pannellumScenes[loc.id] = {
@@ -44,7 +41,6 @@ allLocations.forEach(loc => {
     };
 });
 
-// Mélanger la liste pour que les parties soient aléatoires
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -52,9 +48,8 @@ function shuffleArray(array) {
     }
 }
 shuffleArray(allLocations);
-gameLocations = allLocations.slice(0, totalRounds); // On en garde seulement 5
+gameLocations = allLocations.slice(0, totalRounds); 
 
-// On lance le visualiseur 360 avec le 1er lieu de la liste
 const viewer = pannellum.viewer('panorama', {
     "default": {
         "firstScene": gameLocations[0].id,
@@ -66,7 +61,7 @@ const viewer = pannellum.viewer('panorama', {
 });
 
 // ==========================================
-// 3. INITIALISATION DE LA CARTE (LEAFLET)
+// 3. LA CARTE (LEAFLET)
 // ==========================================
 
 const map = L.map('map', { crs: L.CRS.Simple, minZoom: -2, maxZoom: 3, zoomControl: false, attributionControl: false });
@@ -74,18 +69,14 @@ const bounds = [[0, 0], [1000, 1000]];
 L.imageOverlay('maps/map.png', bounds).addTo(map);
 map.fitBounds(bounds);
 
-// Un groupe (calque) pour pouvoir effacer facilement le point du joueur et la vraie réponse entre chaque manche
 const gameLayer = L.layerGroup().addTo(map);
 
 const guessBtn = document.getElementById('guess-btn');
-const mapContainer = document.getElementById('map-container');
+const mapWrapper = document.getElementById('map-wrapper');
 const timerDisplay = document.getElementById('timer-display');
-const nextBtn = document.getElementById('next-btn');
-
-mapContainer.addEventListener('transitionend', () => map.invalidateSize());
 
 // ==========================================
-// 4. LOGIQUE DE JEU (CHRONO ET CLICS)
+// 4. CHRONO ET CLICS
 // ==========================================
 
 function startTimer() {
@@ -100,18 +91,15 @@ function startTimer() {
         
         if (timeLeft <= 5) timerDisplay.classList.add('timer-warning');
         
-        // TEMPS ÉCOULÉ !
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            validateRound(); // Force la validation même sans point
+            validateRound(); 
         }
     }, 1000);
 }
 
 function enableMapClick() {
     map.on('click', function(e) {
-        console.log("Coordonnées -> targetY: " + e.latlng.lat + " | targetX: " + e.latlng.lng);
-
         if (marker !== null) gameLayer.removeLayer(marker);
         marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(gameLayer);
         
@@ -120,28 +108,31 @@ function enableMapClick() {
     });
 }
 
-// Clic sur le bouton valider
 guessBtn.addEventListener('click', () => {
     if(marker) validateRound();
 });
 
 // ==========================================
-// 5. RÉSULTAT DE LA MANCHE
+// 5. CINÉMATIQUE DE RÉSULTAT
 // ==========================================
 
 function validateRound() {
-    clearInterval(timerInterval); // Stoppe le chrono
-    map.off('click'); // Bloque la carte
+    clearInterval(timerInterval);
+    map.off('click'); 
     guessBtn.disabled = true;
 
     const targetLocation = gameLocations[currentRound - 1];
     let score = 0;
     let distance = 0;
+    
+    // Tableau des points pour calculer le zoom de la caméra (Le vrai point est toujours là)
+    const pointsToFit = [[targetLocation.y, targetLocation.x]];
 
-    // Si le joueur a eu le temps de mettre un point
     if (marker !== null) {
         const clickY = marker.getLatLng().lat;
         const clickX = marker.getLatLng().lng;
+
+        pointsToFit.push([clickY, clickX]); // On ajoute le clic du joueur à la caméra
 
         distance = Math.sqrt(Math.pow(targetLocation.x - clickX, 2) + Math.pow(targetLocation.y - clickY, 2));
         score = Math.round(maxScorePerRound - (distance * 5)); 
@@ -149,9 +140,7 @@ function validateRound() {
 
         document.getElementById('distanceDisplay').innerText = Math.round(distance) + " blocs";
         L.polyline([[clickY, clickX], [targetLocation.y, targetLocation.x]], {color: '#00B4D8', weight: 3, dashArray: '10, 10'}).addTo(gameLayer);
-    } 
-    // S'il n'a rien fait (temps écoulé)
-    else {
+    } else {
         document.getElementById('distanceDisplay').innerText = "Temps écoulé !";
     }
 
@@ -159,48 +148,87 @@ function validateRound() {
     document.getElementById('scoreDisplay').innerText = score;
     document.getElementById('header-score').innerText = totalScore;
 
-    // Affiche la vraie réponse
+    // Place la vraie réponse
     L.circleMarker([targetLocation.y, targetLocation.x], {color: '#0A0A0A', fillColor: '#00B4D8', fillOpacity: 1, radius: 8}).addTo(gameLayer);
-    
-    // Change le bouton si c'est la fin du jeu
-    if (currentRound >= totalRounds) {
-        nextBtn.innerText = "Rejouer une partie";
-    } else {
-        nextBtn.innerText = "Lieu suivant";
-    }
 
+    // 🎬 Lancement de l'animation
     document.getElementById('result-overlay').classList.remove('hidden');
+    mapWrapper.classList.add('result-mode'); // Fait grossir la carte au milieu
+
+    // On attend 0.5s que la carte ait fini de grossir pour lancer le déplacement de caméra Leaflet
+    setTimeout(() => {
+        map.invalidateSize(); // Met à jour les dimensions de la carte
+        
+        // Mouvement fluide de la carte vers les points
+        map.flyToBounds(pointsToFit, { padding: [60, 60], duration: 1.5 });
+
+        // On attend la fin du mouvement (1.5s) pour afficher les scores
+        setTimeout(() => {
+            document.getElementById('result-modal').classList.remove('hidden');
+            startWaitingLobby();
+        }, 1500);
+
+    }, 500);
 }
 
 // ==========================================
-// 6. PASSER AU LIEU SUIVANT
+// 6. COMPTE À REBOURS MULTIJOUEUR
 // ==========================================
 
-nextBtn.addEventListener('click', () => {
-    // Si la partie est finie (Round 5), on recharge la page pour relancer un tirage
+function startWaitingLobby() {
+    let waitTime = 5;
+    const nextTimerDisplay = document.getElementById('auto-next-timer');
+    const msgBox = document.getElementById('waiting-msg');
+    
     if (currentRound >= totalRounds) {
-        location.reload();
+        msgBox.innerHTML = `Partie terminée ! Fin dans <span id="auto-next-timer">${waitTime}</span>s...`;
+    } else {
+        msgBox.innerHTML = `En attente des autres joueurs... (<span id="auto-next-timer">${waitTime}</span>s)`;
+    }
+
+    const waitInterval = setInterval(() => {
+        waitTime--;
+        document.getElementById('auto-next-timer').innerText = waitTime;
+        
+        if (waitTime <= 0) {
+            clearInterval(waitInterval);
+            goToNextRound();
+        }
+    }, 1000);
+}
+
+function goToNextRound() {
+    if (currentRound >= totalRounds) {
+        location.reload(); // Fin du jeu : recharge la page
         return;
     }
 
-    // Sinon, on passe à la manche suivante
+    // Manche suivante
     currentRound++;
     document.getElementById('round-display').innerText = currentRound;
 
-    // Nettoyer la carte et l'interface
+    // Reset UI
     gameLayer.clearLayers();
     marker = null;
     document.getElementById('result-overlay').classList.add('hidden');
+    document.getElementById('result-modal').classList.add('hidden');
+    mapWrapper.classList.remove('result-mode');
+    
     guessBtn.innerText = "Placer le point";
 
-    // Charger le nouveau paysage 360
-    viewer.loadScene(gameLocations[currentRound - 1].id);
+    // On attend que la carte ait rétréci avant de redémarrer
+    setTimeout(() => {
+        map.invalidateSize();
+        map.fitBounds(bounds);
+        
+        // Charger la nouvelle zone 360
+        viewer.loadScene(gameLocations[currentRound - 1].id);
+        
+        enableMapClick();
+        startTimer();
+    }, 500);
+}
 
-    // Relancer la machine
-    enableMapClick();
-    startTimer();
-});
-
-// DÉMARRAGE DE LA PREMIÈRE MANCHE
+// Démarrage initial
 enableMapClick();
 startTimer();
