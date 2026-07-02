@@ -1,44 +1,25 @@
 // ==========================================
-// 1. CONFIGURATION (MODE DEV - 19 LIEUX)
+// 1. CONFIGURATION (MODE DEV - JUSTE 17, 18, 19)
 // ==========================================
 
 const allLocations = [
-    // Tes 6 lieux déjà configurés (Ne les touche pas !)
-    { id: 'Lieu1', x: 634.0625, y: 809.5625 },
-    { id: 'Lieu2', x: 377.5, y: 779.4375 }, 
-    { id: 'Lieu3', x: 496.375, y: 992.4375 },
-    { id: 'Lieu4', x: 293.06264472481286, y: 958.6056737754375 },
-    { id: 'Lieu5', x: 505.5625, y: 730.3125 },
-    { id: 'Lieu6', x: 273.3125, y: 912.1875 },
-    
-    // ⚠️ Les nouveaux lieux à configurer (Regarde ta console F12)
-    { id: 'Lieu7', x: 500, y: 500 },
-    { id: 'Lieu8', x: 500, y: 500 },
-    { id: 'Lieu9', x: 500, y: 500 },
-    { id: 'Lieu10', x: 500, y: 500 },
-    { id: 'Lieu11', x: 500, y: 500 },
-    { id: 'Lieu12', x: 500, y: 500 },
-    { id: 'Lieu13', x: 500, y: 500 },
-    { id: 'Lieu14', x: 500, y: 500 },
-    { id: 'Lieu15', x: 500, y: 500 },
-    { id: 'Lieu16', x: 500, y: 500 },
     { id: 'Lieu17', x: 500, y: 500 },
     { id: 'Lieu18', x: 500, y: 500 },
     { id: 'Lieu19', x: 500, y: 500 }
 ];
 
 const maxScorePerRound = 5000;
-const totalRounds = allLocations.length; 
+const totalRounds = allLocations.length; // Sera égal à 3
 
 let currentRound = 1;
 let totalScore = 0;
-// En mode Dev, on garde l'ordre exact de 1 à 19
 let gameLocations = allLocations; 
 let marker = null;
 let hasValidated = false;
 
-// Met à jour l'interface automatiquement (19)
-document.getElementById('total-rounds-display').innerText = totalRounds;
+// Met à jour l'affichage du total (3) en haut à droite
+const totalDisplay = document.getElementById('total-rounds-display');
+if (totalDisplay) totalDisplay.innerText = totalRounds;
 
 // ==========================================
 // 2. PRÉPARATION 360 (PANNELLUM)
@@ -108,7 +89,7 @@ document.getElementById('map-container').addEventListener('transitionend', funct
 });
 
 // ==========================================
-// 4. LOGIQUE DES ROUNDS (SANS CHRONO)
+// 4. LOGIQUE DES ROUNDS
 // ==========================================
 
 function startRound() {
@@ -121,7 +102,7 @@ function enableMapClick() {
     map.on('click', function(e) {
         if (hasValidated) return;
         
-        // 🕵️‍♂️ CONSOLE LOG : Copie ces coordonnées !
+        // 🕵️‍♂️ LES COORDONNÉES APPARAISSENT ICI DANS TA CONSOLE F12
         console.log("📍 " + gameLocations[currentRound - 1].id + " -> x: " + e.latlng.lng + ", y: " + e.latlng.lat);
 
         if (marker !== null) gameLayer.removeLayer(marker);
@@ -194,7 +175,7 @@ function processRoundResult() {
 
 nextBtn.addEventListener('click', () => {
     if (currentRound >= totalRounds) {
-        alert("Félicitations, tu as configuré tes 19 lieux ! Tu peux récupérer tes coordonnées dans la console (F12).");
+        alert("Terminé ! Tu as les coordonnées des 3 derniers lieux dans ta console.");
         location.reload(); 
         return;
     }
@@ -216,5 +197,4 @@ nextBtn.addEventListener('click', () => {
     }, 500);
 });
 
-// Lancement initial
 startRound();
