@@ -1,5 +1,5 @@
 // ==========================================
-// 1. CONFIGURATION (BASE DE DONNÉES FINALE)
+// 1. CONFIGURATION DU JEU
 // ==========================================
 
 const allLocations = [
@@ -18,21 +18,31 @@ const allLocations = [
     { id: 'Lieu13', x: 875.5116584116552, y: 375.5173030727776 },
     { id: 'Lieu14', x: 878.4948340752787, y: 431.1085119913018 },
     { id: 'Lieu15', x: 728.6828241093921, y: 428.20462478819366 },
-    // On skip le 16 !
     { id: 'Lieu17', x: 631.5622699443798, y: 327.5529679698231 },
     { id: 'Lieu18', x: 482.4032682804576, y: 230.4027768947771 },
     { id: 'Lieu19', x: 662.6477195672688, y: 100.57379001605248 }
 ];
 
 const maxScorePerRound = 5000;
-const totalRounds = 5; // On tire 5 lieux au hasard par partie
-const roundTime = 30; // 30 secondes pour trouver
+const totalRounds = 5; 
+const roundTime = 30; 
+
+// ==========================================
+// 2. SIMULATION MULTIJOUEUR (Bientôt le vrai serveur !)
+// ==========================================
+
+// Liste des joueurs (Toi + des bots pour simuler le futur multi)
+let players = [
+    { id: 'me', name: 'Moi (Hôte)', score: 0, isMe: true },
+    { id: 'p2', name: 'Kameto', score: 0, isMe: false },
+    { id: 'p3', name: 'Kotei', score: 0, isMe: false },
+    { id: 'p4', name: 'Fatiiiih', score: 0, isMe: false },
+    { id: 'p5', name: 'Etoiles', score: 0, isMe: false }
+];
 
 let currentRound = 1;
-let totalScore = 0;
 let gameLocations = []; 
 let marker = null;
-
 let timerInterval;
 let waitInterval;
 let timeLeft = roundTime;
@@ -40,8 +50,44 @@ let transitionTime = 5;
 let hasValidated = false;
 let isTransitioning = false;
 
+// INITIALISATION DU LOBBY
+function initLobby() {
+    const lobbyPlayersDiv = document.getElementById('lobby-players');
+    lobbyPlayersDiv.innerHTML = '';
+    
+    players.forEach(p => {
+        lobbyPlayersDiv.innerHTML += `
+            <div class="player-item ${p.isMe ? 'is-me' : ''}">
+                <span>${p.name}</span>
+                <span class="status">Prêt</span>
+            </div>
+        `;
+    });
+}
+initLobby(); // Lance l'affichage du lobby au chargement
+
+// BOUTON LANCER LA PARTIE
+document.getElementById('start-game-btn').addEventListener('click', () => {
+    // Cache le lobby, montre le jeu
+    document.getElementById('lobby-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    
+    // Mélange et lance le jeu
+    shuffleArray(allLocations);
+    gameLocations = allLocations.slice(0, totalRounds); 
+    
+    // Rafraichit la carte Leaflet (Important car elle était cachée)
+    setTimeout(() => {
+        map.invalidateSize();
+        map.fitBounds(bounds);
+        viewer.loadScene(gameLocations[0].id);
+        updateLeaderboardDisplay(); // Affiche le classement vierge
+        announceRound();
+    }, 500);
+});
+
 // ==========================================
-// 2. PRÉPARATION 360 (PANNELLUM)
+// 3. PRÉPARATION 360 & CARTE
 // ==========================================
 
 const pannellumScenes = {};
@@ -49,57 +95,28 @@ allLocations.forEach(loc => {
     pannellumScenes[loc.id] = {
         "type": "cubemap",
         "cubeMap": [
-            `panoramas/${loc.id}/panorama_0.png`,
-            `panoramas/${loc.id}/panorama_1.png`,
-            `panoramas/${loc.id}/panorama_2.png`,
-            `panoramas/${loc.id}/panorama_3.png`,
-            `panoramas/${loc.id}/panorama_4.png`,
-            `panoramas/${loc.id}/panorama_5.png`
+            `panoramas/${loc.id}/panorama_0.png`, `panoramas/${loc.id}/panorama_1.png`,
+            `panoramas/${loc.id}/panorama_2.png`, `panoramas/${loc.id}/panorama_3.png`,
+            `panoramas/${loc.id}/panorama_4.png`, `panoramas/${loc.id}/panorama_5.png`
         ]
     };
 });
 
-// Mélange des lieux pour chaque nouvelle partie !
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]];
     }
 }
-shuffleArray(allLocations);
-gameLocations = allLocations.slice(0, totalRounds); 
 
 const viewer = pannellum.viewer('panorama', {
-    "default": {
-        "firstScene": gameLocations[0].id,
-        "autoLoad": true,
-        "showZoomCtrl": false,
-        "mouseZoom": true
-    },
+    "default": { "firstScene": allLocations[0].id, "autoLoad": true, "showZoomCtrl": false, "mouseZoom": true },
     "scenes": pannellumScenes
 });
 
-// ==========================================
-// 3. LA CARTE (LEAFLET)
-// ==========================================
-
 const bounds = [[0, 0], [1427, 1427]];
-
-const map = L.map('map', { 
-    crs: L.CRS.Simple, 
-    minZoom: -5, 
-    maxZoom: 4, 
-    zoomSnap: 0, 
-    zoomDelta: 0.5,
-    zoomControl: false, 
-    attributionControl: false,
-    maxBounds: bounds,         
-    maxBoundsViscosity: 1.0    
-});
-
+const map = L.map('map', { crs: L.CRS.Simple, minZoom: -5, maxZoom: 4, zoomSnap: 0, zoomDelta: 0.5, zoomControl: false, attributionControl: false, maxBounds: bounds, maxBoundsViscosity: 1.0 });
 L.imageOverlay('maps/map.png', bounds).addTo(map);
-map.fitBounds(bounds);
-
 const gameLayer = L.layerGroup().addTo(map);
 
 const guessBtn = document.getElementById('guess-btn');
@@ -107,15 +124,10 @@ const mapWrapper = document.getElementById('map-wrapper');
 const timerDisplay = document.getElementById('timer-display');
 const msgBox = document.getElementById('waiting-msg');
 
-const resizeObserver = new ResizeObserver(() => {
-    map.invalidateSize({ pan: false });
-});
+const resizeObserver = new ResizeObserver(() => { map.invalidateSize({ pan: false }); });
 resizeObserver.observe(document.getElementById('map-container'));
-
 document.getElementById('map-container').addEventListener('transitionend', function(e) {
-    if (e.target.id === 'map-container' && !hasValidated) {
-        map.fitBounds(bounds);
-    }
+    if (e.target.id === 'map-container' && !hasValidated) map.fitBounds(bounds);
 });
 
 // ==========================================
@@ -126,7 +138,6 @@ function announceRound() {
     const announcer = document.getElementById('round-announcer');
     const announcerText = document.getElementById('round-title-text');
     
-    // Reset l'animation CSS
     announcerText.style.animation = 'none';
     announcerText.offsetHeight; 
     announcerText.style.animation = null;
@@ -140,10 +151,8 @@ function announceRound() {
     
     setTimeout(() => {
         announcer.classList.add('hidden');
-        
         map.invalidateSize(); 
         map.fitBounds(bounds);
-        
         enableMapClick();
         startTimer();
     }, 2000);
@@ -162,23 +171,14 @@ function startTimer() {
         timeLeft--;
         timerDisplay.innerText = timeLeft;
         
-        if (timeLeft <= 5 && !hasValidated) {
-            timerDisplay.classList.add('timer-warning');
-        }
-
-        if (hasValidated && !isTransitioning) {
-            msgBox.innerHTML = `En attente des autres joueurs... (<span id="auto-next-timer">${timeLeft}</span>s)`;
-        }
+        if (timeLeft <= 5 && !hasValidated) timerDisplay.classList.add('timer-warning');
+        if (hasValidated && !isTransitioning) msgBox.innerHTML = `En attente des autres joueurs... (<span id="auto-next-timer">${timeLeft}</span>s)`;
         
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
             timerDisplay.classList.remove('timer-warning');
-            
-            if (!hasValidated) {
-                processRoundResult(); 
-            } else {
-                startWaitingLobby(); 
-            }
+            if (!hasValidated) processRoundResult(); 
+            else startWaitingLobby(); 
         }
     }, 1000);
 }
@@ -186,21 +186,17 @@ function startTimer() {
 function enableMapClick() {
     map.on('click', function(e) {
         if (hasValidated) return;
-        
         if (marker !== null) gameLayer.removeLayer(marker);
         marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(gameLayer);
-        
         guessBtn.disabled = false;
         guessBtn.innerText = "Valider !";
     });
 }
 
-guessBtn.addEventListener('click', () => {
-    if(marker && !hasValidated) processRoundResult();
-});
+guessBtn.addEventListener('click', () => { if(marker && !hasValidated) processRoundResult(); });
 
 // ==========================================
-// 5. CINÉMATIQUE DE RÉSULTAT ET SCORE
+// 5. RÉSULTATS ET LEADERBOARD
 // ==========================================
 
 function processRoundResult() {
@@ -210,8 +206,7 @@ function processRoundResult() {
     timerDisplay.classList.remove('timer-warning');
 
     const targetLocation = gameLocations[currentRound - 1];
-    let score = 0;
-    
+    let myScore = 0;
     const pointsToFit = [[targetLocation.y, targetLocation.x]];
 
     if (marker !== null) {
@@ -222,13 +217,8 @@ function processRoundResult() {
         const distance = Math.sqrt(Math.pow(targetLocation.x - clickX, 2) + Math.pow(targetLocation.y - clickY, 2));
         let displayDistance = Math.round(distance);
         
-        if (displayDistance <= 2) {
-            displayDistance = 0; 
-            score = maxScorePerRound; 
-        } else {
-            score = Math.round(maxScorePerRound - (distance * 3.5)); 
-            if (score < 0) score = 0;
-        }
+        if (displayDistance <= 2) { displayDistance = 0; myScore = maxScorePerRound; } 
+        else { myScore = Math.round(maxScorePerRound - (distance * 3.5)); if (myScore < 0) myScore = 0; }
 
         document.getElementById('distanceDisplay').innerText = displayDistance + " blocs";
         L.polyline([[clickY, clickX], [targetLocation.y, targetLocation.x]], {color: '#00B4D8', weight: 3, dashArray: '10, 10'}).addTo(gameLayer);
@@ -236,32 +226,57 @@ function processRoundResult() {
         document.getElementById('distanceDisplay').innerText = "Temps écoulé !";
     }
 
-    totalScore += score;
-    document.getElementById('scoreDisplay').innerText = score;
-    document.getElementById('header-score').innerText = totalScore;
+    // MISE À JOUR DES SCORES MULTIJOUEURS
+    players.forEach(p => {
+        if (p.isMe) {
+            p.score += myScore;
+        } else {
+            // Simulation : Les bots font un score aléatoire entre 1000 et 4900
+            p.score += Math.floor(Math.random() * 3900) + 1000; 
+        }
+    });
 
+    // Trie les joueurs par score décroissant
+    players.sort((a, b) => b.score - a.score);
+    updateLeaderboardDisplay();
+
+    document.getElementById('scoreDisplay').innerText = myScore;
+    
     L.circleMarker([targetLocation.y, targetLocation.x], {color: '#0A0A0A', fillColor: '#00B4D8', fillOpacity: 1, radius: 8}).addTo(gameLayer);
-
     document.getElementById('result-overlay').classList.remove('hidden');
     mapWrapper.classList.add('result-mode'); 
 
     setTimeout(() => {
         map.flyToBounds(pointsToFit, { padding: [60, 60], duration: 1.5 });
-
         setTimeout(() => {
             document.getElementById('result-modal').classList.remove('hidden');
-
-            if (timeLeft <= 0) {
-                startWaitingLobby();
-            } else {
-                msgBox.innerHTML = `En attente des autres joueurs... (<span id="auto-next-timer">${timeLeft}</span>s)`;
-            }
+            if (timeLeft <= 0) startWaitingLobby();
+            else msgBox.innerHTML = `En attente des autres joueurs... (<span id="auto-next-timer">${timeLeft}</span>s)`;
         }, 1500);
     }, 500);
 }
 
+function updateLeaderboardDisplay() {
+    const lbContent = document.getElementById('leaderboard-content');
+    lbContent.innerHTML = '';
+    
+    // Affiche le Top 3
+    for (let i = 0; i < 3 && i < players.length; i++) {
+        const p = players[i];
+        lbContent.innerHTML += `<div class="lb-row ${p.isMe ? 'me' : ''}"><span>#${i+1} ${p.name}</span> <span>${p.score}</span></div>`;
+    }
+
+    // Trouve ma position
+    const myIndex = players.findIndex(p => p.isMe);
+    
+    // Si je ne suis pas dans le top 3, j'affiche ma position en dessous
+    if (myIndex >= 3) {
+        lbContent.innerHTML += `<div class="lb-row divider me"><span>#${myIndex+1} ${players[myIndex].name}</span> <span>${players[myIndex].score}</span></div>`;
+    }
+}
+
 // ==========================================
-// 6. COMPTE À REBOURS DE TRANSITION (5s)
+// 6. TRANSITION & PODIUM DE FIN
 // ==========================================
 
 function startWaitingLobby() {
@@ -270,13 +285,9 @@ function startWaitingLobby() {
     transitionTime = 5;
 
     function updateMsg() {
-        if (currentRound >= totalRounds) {
-            msgBox.innerHTML = `Partie terminée ! Fin dans <span id="auto-next-timer">${transitionTime}</span>s...`;
-        } else {
-            msgBox.innerHTML = `Prochain round dans <span id="auto-next-timer">${transitionTime}</span>s...`;
-        }
+        if (currentRound >= totalRounds) msgBox.innerHTML = `Partie terminée ! Résultats dans <span id="auto-next-timer">${transitionTime}</span>s...`;
+        else msgBox.innerHTML = `Prochain round dans <span id="auto-next-timer">${transitionTime}</span>s...`;
     }
-    
     updateMsg();
 
     clearInterval(waitInterval);
@@ -286,17 +297,13 @@ function startWaitingLobby() {
 
         if (transitionTime <= 0) {
             clearInterval(waitInterval);
-            goToNextRound();
+            if (currentRound >= totalRounds) showPodium();
+            else goToNextRound();
         }
     }, 1000);
 }
 
 function goToNextRound() {
-    if (currentRound >= totalRounds) {
-        location.reload(); 
-        return;
-    }
-
     currentRound++;
     document.getElementById('round-display').innerText = currentRound;
 
@@ -313,5 +320,35 @@ function goToNextRound() {
     }, 500);
 }
 
-// Lancement initial
-announceRound();
+function showPodium() {
+    document.getElementById('game-screen').classList.add('hidden');
+    document.getElementById('podium-screen').classList.remove('hidden');
+    
+    const podiumContent = document.getElementById('podium-content');
+    
+    // Les joueurs sont déjà triés grâce à la fin du round 5
+    const p1 = players[0];
+    const p2 = players[1];
+    const p3 = players[2];
+
+    // HTML du Podium (L'ordre visuel c'est 2ème, 1er, 3ème)
+    podiumContent.innerHTML = `
+        <div class="podium-step second">
+            <div class="podium-name">${p2 ? p2.name : ''}</div>
+            <div class="podium-score">${p2 ? p2.score : ''}</div>
+        </div>
+        <div class="podium-step first">
+            <div class="podium-name" style="font-size: 22px;">👑 ${p1.name}</div>
+            <div class="podium-score">${p1.score}</div>
+        </div>
+        <div class="podium-step third">
+            <div class="podium-name">${p3 ? p3.name : ''}</div>
+            <div class="podium-score">${p3 ? p3.score : ''}</div>
+        </div>
+    `;
+}
+
+// Bouton Retour au Lobby
+document.getElementById('return-lobby-btn').addEventListener('click', () => {
+    location.reload(); // Recharge la page pour tout remettre à zéro proprement
+});
