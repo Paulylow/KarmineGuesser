@@ -16,8 +16,11 @@ body, html {
     height: 100vh;
     overflow: hidden;
     font-family: 'Satoshi', sans-serif;
-    background: var(--black); /* Fond noir pour le jeu 360 */
+    background: var(--black); /* Fond noir par défaut pour le jeu 360 */
 }
+
+/* 📍 LA CLASSE MAGIQUE QUI CACHE LES ELEMENTS (Hôte/Invité) */
+.hidden { display: none !important; }
 
 /* =========================================
    FOND ANIMÉ (BLANC AVEC LOGOS)
@@ -27,10 +30,6 @@ body, html {
     background-color: var(--offwhite); /* Fond blanc cassé */
     z-index: 150; /* Au dessus du jeu, en dessous du lobby */
     transition: opacity 0.5s ease;
-}
-
-#animated-bg.hidden {
-    opacity: 0; pointer-events: none; z-index: -10;
 }
 
 /* L'image qui défile */
@@ -57,7 +56,6 @@ body, html {
     position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
     transition: opacity 0.5s ease; z-index: 200;
 }
-.screen.hidden { opacity: 0; pointer-events: none; z-index: -10; }
 #game-screen { z-index: 1; }
 
 /* ===== ÉCRAN CONNEXION, LOBBY & PODIUM ===== */
@@ -211,7 +209,6 @@ body, html {
     position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
     background: rgba(10, 10, 10, 0.85); z-index: 50; transition: opacity 0.5s;
 }
-.overlay.hidden { opacity: 0; pointer-events: none; }
 
 /* ===== MODALE DE SCORE ===== */
 .result-modal {
@@ -220,7 +217,7 @@ body, html {
     border: 4px solid var(--black); border-bottom: 8px solid var(--cyan);
     text-align: center; min-width: 450px; transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.result-modal.hidden { opacity: 0; transform: translate(-50%, 50px); pointer-events: none; }
+
 .art-title { font-family: 'Clash Display', sans-serif; font-size: 38px; text-transform: uppercase; margin-bottom: 5px; }
 .distance-text { font-size: 18px; font-weight: 500; margin-bottom: 5px; }
 .cyan-text { color: var(--cyan); font-weight: 700; }
