@@ -16,18 +16,19 @@ body, html {
     height: 100vh;
     overflow: hidden;
     font-family: 'Satoshi', sans-serif;
-    background: var(--black);
+    /* Le fond global du jeu reste noir pour les panoramas */
+    background: var(--black); 
 }
 
 /* =========================================
-   FOND ANIMÉ
+   FOND ANIMÉ (Visible uniquement sur les écrans clairs)
 ========================================= */
 #animated-bg {
     position: fixed; top: 0; left: 0; width: 200vw; height: 200vh;
     background-image: url('logo.png');
     background-size: 100px 100px;
     background-repeat: repeat;
-    opacity: 0.05; /* Très discret pour ne pas gêner la vue */
+    opacity: 0.05; 
     z-index: -100;
     pointer-events: none;
     animation: scrollBg 30s linear infinite;
@@ -48,69 +49,70 @@ body, html {
 .screen.hidden { opacity: 0; pointer-events: none; z-index: -10; }
 #game-screen { z-index: 1; }
 
-/* ===== ÉCRAN CONNEXION & LOBBY & PODIUM ===== */
+/* ===== ÉCRAN CONNEXION, LOBBY & PODIUM (THÈME CLAIR) ===== */
 #login-screen, #lobby-screen, #podium-screen {
-    background: radial-gradient(circle at center, rgba(26,26,26,0.8) 0%, rgba(10,10,10,0.95) 100%);
+    background: #F4F3EF; /* Fond clair */
     display: flex; justify-content: center; align-items: center; flex-direction: column;
 }
 
 .lobby-container, .podium-container {
     width: 90%; max-width: 600px;
-    background: rgba(10,10,10,0.9); border: 2px solid var(--cyan);
+    background: #FFFFFF; /* Boîte blanche */
+    border: 2px solid var(--cyan);
     border-radius: 12px; padding: 40px; text-align: center;
-    box-shadow: 0 10px 40px rgba(0, 180, 216, 0.2);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
 }
 
 .login-box { max-width: 450px; }
-.lobby-logo { height: 100px; margin-bottom: 10px; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.5)); }
-.lobby-title { font-family: 'Clash Display', sans-serif; font-size: 36px; color: white; margin-bottom: 20px; text-transform: uppercase; }
-.lobby-info { font-family: 'Barlow Condensed', sans-serif; color: #aaa; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 0.1em; }
+.lobby-logo { height: 100px; margin-bottom: 10px; }
+.lobby-title { font-family: 'Clash Display', sans-serif; font-size: 36px; color: var(--black); margin-bottom: 20px; text-transform: uppercase; }
+.lobby-info { font-family: 'Barlow Condensed', sans-serif; color: #666; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 0.1em; }
 
 /* Inputs de connexion */
 .input-group { display: flex; flex-direction: column; text-align: left; margin-bottom: 20px; }
 .input-group label { font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase; color: var(--cyan); letter-spacing: 0.05em; margin-bottom: 8px; font-size: 16px; }
 .input-group input, .kg-select {
-    background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2);
-    padding: 12px; border-radius: 8px; color: white; font-family: 'Satoshi', sans-serif;
+    background: #f9f9f9; border: 2px solid #ddd;
+    padding: 12px; border-radius: 8px; color: var(--black); font-family: 'Satoshi', sans-serif;
     font-size: 16px; outline: none; transition: border 0.3s;
 }
-.input-group input:focus, .kg-select:focus { border-color: var(--cyan); }
+.input-group input:focus, .kg-select:focus { border-color: var(--cyan); background: #fff; }
 .input-group small { color: #888; font-size: 12px; margin-top: 5px; }
 
 /* Liste des joueurs */
 .players-list {
-    background: rgba(255,255,255,0.05); border-radius: 8px; padding: 15px;
+    background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 15px;
     margin-bottom: 20px; max-height: 250px; overflow-y: auto;
 }
-.player-item { display: flex; justify-content: flex-start; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); gap: 15px; }
+.player-item { display: flex; justify-content: flex-start; align-items: center; padding: 10px; border-bottom: 1px solid #eee; gap: 15px; }
 .player-item:last-child { border-bottom: none; }
 .player-item.is-me { background: rgba(0, 180, 216, 0.1); border-radius: 8px; }
 .mc-head { width: 40px; height: 40px; border-radius: 4px; image-rendering: pixelated; border: 2px solid var(--black); }
 .player-info { display: flex; flex-direction: column; text-align: left; flex-grow: 1; }
-.player-rpname { color: white; font-weight: 700; font-size: 16px; }
-.player-pseudo { color: #aaa; font-size: 12px; font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase; }
+.player-rpname { color: var(--black); font-weight: 700; font-size: 16px; }
+.player-pseudo { color: #888; font-size: 12px; font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase; }
 .host-crown { color: #FFD700; font-size: 18px; }
 
 /* Paramètres de l'hôte */
 .host-settings {
-    background: rgba(0, 180, 216, 0.05); border: 1px solid var(--cyan);
+    background: #fcfcfc; border: 1px solid var(--cyan);
     border-radius: 8px; padding: 20px; margin-bottom: 20px;
 }
-.settings-title { color: white; font-family: 'Clash Display', sans-serif; margin-bottom: 15px; font-size: 18px;}
+.settings-title { color: var(--black); font-family: 'Clash Display', sans-serif; margin-bottom: 15px; font-size: 18px;}
 .settings-grid { display: flex; gap: 15px; margin-bottom: 20px; text-align: left;}
 .setting-item { flex: 1; display: flex; flex-direction: column; }
-.setting-item label { color: #ccc; font-size: 12px; text-transform: uppercase; margin-bottom: 5px; }
+.setting-item label { color: #666; font-size: 12px; text-transform: uppercase; margin-bottom: 5px; }
 
 .disconnect-btn {
     background: none; border: none; color: #ff4757; text-decoration: underline;
     cursor: pointer; margin-top: 15px; font-family: 'Satoshi', sans-serif;
 }
 
-/* ===== LEADERBOARD EN DIRECT (EN JEU) ===== */
+/* ===== LEADERBOARD EN DIRECT (DÉPLACÉ À DROITE) ===== */
 .live-leaderboard {
-    position: absolute; top: 110px; left: 40px; z-index: 10;
+    position: absolute; top: 110px; right: 40px; z-index: 10;
     background: rgba(10, 10, 10, 0.85); border: 2px solid var(--cyan);
-    border-radius: 8px; padding: 15px; width: 250px;
+    border-radius: 8px; padding: 15px; width: 280px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.5); pointer-events: none;
 }
 .leaderboard-title {
@@ -118,9 +120,10 @@ body, html {
     text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1px solid rgba(255,255,255,0.2);
     padding-bottom: 5px; margin-bottom: 10px; text-align: center;
 }
-.lb-row { display: flex; justify-content: space-between; color: white; padding: 5px 0; font-size: 16px; font-weight: 500; }
+.lb-row { display: flex; justify-content: space-between; align-items: center; color: white; padding: 5px 0; font-size: 15px; font-weight: 500; }
 .lb-row.me { color: var(--cyan); font-weight: 700; }
 .lb-row.divider { border-top: 1px dashed rgba(255,255,255,0.3); margin-top: 5px; padding-top: 10px; }
+.lb-head { width: 24px; height: 24px; border-radius: 4px; image-rendering: pixelated; margin-right: 8px; border: 1px solid #333; }
 
 /* ===== PODIUM FINAL ===== */
 .podium { display: flex; justify-content: center; align-items: flex-end; gap: 15px; margin-top: 30px; height: 200px; }
@@ -176,7 +179,7 @@ body, html {
 
 #map-wrapper:not(.result-mode) .map-hover-area:hover { width: 480px; opacity: 1; border-color: var(--cyan); }
 
-#map { width: 100%; aspect-ratio: 1 / 1; cursor: crosshair; background: var(--black) !important; }
+#map { width: 100%; aspect-ratio: 1 / 1; cursor: crosshair; background: transparent !important; }
 
 .guess-btn {
     width: 100%; padding: 15px; background: var(--cyan); color: var(--black);
@@ -212,12 +215,12 @@ body, html {
 .score-num { font-family: 'Clash Display', sans-serif; font-size: 56px; font-weight: 700; color: var(--cyan); line-height: 1; margin-bottom: 15px; }
 .waiting-text {
     font-family: 'Barlow Condensed', sans-serif; font-size: 15px;
-    letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray);
+    letter-spacing: 0.1em; text-transform: uppercase; color: #888;
     border-top: 1px solid #ddd; padding-top: 15px;
 }
 
-/* ===== ANIMATION ROUND ===== */
-#round-announcer { background: var(--black); z-index: 100; display: flex; justify-content: center; align-items: center; }
+/* ===== ANIMATION ROUND (Sur fond noir forcé pour la lisibilité) ===== */
+#round-announcer { background: rgba(10, 10, 10, 0.95); z-index: 100; display: flex; justify-content: center; align-items: center; }
 .round-title {
     font-family: 'Clash Display', sans-serif; font-size: 120px; color: var(--cyan);
     text-transform: uppercase; font-weight: 700;
