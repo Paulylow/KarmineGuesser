@@ -18,6 +18,7 @@
 
     <div id="animated-bg"></div>
 
+    <!-- ================= ÉCRAN DE CONNEXION ================= -->
     <div id="login-screen" class="screen active">
         <div class="lobby-container login-box">
             <img src="logo.png" alt="Logo" class="lobby-logo">
@@ -31,19 +32,27 @@
             <div class="input-group">
                 <label for="mc-pseudo">Pseudo Minecraft</label>
                 <input type="text" id="mc-pseudo" placeholder="Ex: Kameto" autocomplete="off">
-                <small>Permet de récupérer ta tête !</small>
+            </div>
+
+            <!-- NOUVEAU : LE CODE DE LA PARTIE -->
+            <div class="input-group">
+                <label for="room-code">Code de la partie</label>
+                <input type="text" id="room-code" placeholder="Ex: KCORP" autocomplete="off" style="text-transform: uppercase;">
+                <small>Crée un code ou rejoins celui de tes amis !</small>
             </div>
 
             <button id="join-lobby-btn" class="guess-btn">Rejoindre le Lobby</button>
         </div>
     </div>
 
+    <!-- ================= ÉCRAN LOBBY ================= -->
     <div id="lobby-screen" class="screen hidden">
         <div class="lobby-container">
-            <h1 class="lobby-title">SALLE D'ATTENTE</h1>
+            <h1 class="lobby-title">SALLE D'ATTENTE (<span id="display-room-code" style="color:var(--cyan);">...</span>)</h1>
             
             <div class="players-list" id="lobby-players">
-                </div>
+                <p style="color: #888;">Chargement des joueurs...</p>
+            </div>
             
             <div id="host-settings" class="host-settings hidden">
                 <h3 class="settings-title">⚙️ Paramètres de la partie</h3>
@@ -63,7 +72,6 @@
                             <option value="15">15 secondes</option>
                             <option value="30" selected>30 secondes</option>
                             <option value="60">60 secondes</option>
-                            <option value="120">120 secondes</option>
                         </select>
                     </div>
                 </div>
@@ -71,15 +79,14 @@
             </div>
             
             <p id="waiting-host-msg" class="lobby-info hidden">En attente du lancement par l'hôte...</p>
-            <button id="disconnect-btn" class="disconnect-btn">Se déconnecter</button>
+            <button id="disconnect-btn" class="disconnect-btn">Quitter la salle</button>
         </div>
     </div>
 
+    <!-- ================= ÉCRAN DE JEU ================= -->
     <div id="game-screen" class="screen hidden">
         <header class="game-header">
-            <div class="logo">
-                <img src="logo.png" alt="Karmine Guesser Logo">
-            </div>
+            <div class="logo"><img src="logo.png" alt="Karmine Guesser Logo"></div>
             <div class="game-stats">
                 <div class="stat-box">
                     <span class="stat-label">Temps</span>
@@ -120,15 +127,18 @@
         </div>
     </div>
 
+    <!-- ================= ÉCRAN PODIUM FINAL ================= -->
     <div id="podium-screen" class="screen hidden">
         <div class="podium-container">
             <img src="logo.png" alt="Logo" class="lobby-logo" style="margin-bottom: 20px;">
             <h1 class="lobby-title" style="color: var(--cyan);">FIN DE LA PARTIE</h1>
             <div class="podium" id="podium-content"></div>
-            <button id="return-lobby-btn" class="guess-btn" style="max-width: 300px; margin-top: 40px;">Retour au Lobby</button>
+            <button id="return-lobby-btn" class="guess-btn" style="max-width: 300px; margin-top: 40px;">Nouvelle Partie</button>
         </div>
     </div>
 
+    <!-- LE CERVEAU SUPABASE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
 </body>
 </html>
