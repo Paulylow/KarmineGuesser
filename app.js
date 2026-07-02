@@ -1,5 +1,5 @@
 if (typeof window.supabase === 'undefined') {
-    alert("⚠️ Erreur : Supabase n'est pas chargé !");
+    alert("⚠️ Erreur Critique : Supabase n'est pas chargé ! Vérifie ton fichier index.html.");
 }
 
 // ==========================================
@@ -49,7 +49,6 @@ async function checkSession() {
                 currentRoom = room;
                 document.getElementById('display-room-code').innerText = room.room_code;
                 
-                // On vérifie que le joueur est toujours dans la BDD, sinon on le remet (Anti bug F5)
                 let { data: existingPlayer } = await supabaseClient.from('players').select('*').eq('id', myPlayer.id).single();
                 if (!existingPlayer) {
                     const { data: newP } = await supabaseClient.from('players').insert([{ room_id: room.id, rp_name: myPlayer.rp_name, mc_pseudo: myPlayer.mc_pseudo, is_host: myPlayer.is_host, score: myPlayer.score }]).select().single();
@@ -61,7 +60,6 @@ async function checkSession() {
                 setupRealtimeSubscriptions();
                 fetchPlayers();
                 
-                // Si la partie était déjà lancée, on rejoint direct le jeu au bon chrono !
                 if (room.status === 'playing') {
                     syncGameFromDB(room);
                     return; 
@@ -70,9 +68,13 @@ async function checkSession() {
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('lobby-screen').classList.remove('hidden');
                 
+                // 📍 CORRECTION DE L'AFFICHAGE HÔTE / INVITÉ
                 if (myPlayer.is_host) {
                     document.getElementById('host-settings').classList.remove('hidden');
                     document.getElementById('waiting-host-msg').classList.add('hidden');
+                } else {
+                    document.getElementById('host-settings').classList.add('hidden');
+                    document.getElementById('waiting-host-msg').classList.remove('hidden');
                 }
                 return;
             }
@@ -94,7 +96,7 @@ document.getElementById('join-lobby-btn').addEventListener('click', async () => 
     btn.innerText = "Connexion..."; btn.disabled = true;
 
     try {
-        let { data: room } = await supabaseClient.from('rooms').select('*').eq('room_code', roomCode).single();
+        let { data: room, error: searchError } = await supabaseClient.from('rooms').select('*').eq('room_code', roomCode).single();
         let isHost = false;
         
         if (!room) {
@@ -123,9 +125,13 @@ document.getElementById('join-lobby-btn').addEventListener('click', async () => 
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('lobby-screen').classList.remove('hidden');
         
+        // 📍 CORRECTION DE L'AFFICHAGE HÔTE / INVITÉ
         if (isHost) {
             document.getElementById('host-settings').classList.remove('hidden');
             document.getElementById('waiting-host-msg').classList.add('hidden');
+        } else {
+            document.getElementById('host-settings').classList.add('hidden');
+            document.getElementById('waiting-host-msg').classList.remove('hidden');
         }
     } catch (err) {
         alert("❌ Erreur : " + err.message);
@@ -149,7 +155,6 @@ function setupRealtimeSubscriptions() {
             fetchPlayers();
         }).subscribe();
 
-    // On écoute l'Hôte qui change les rounds
     supabaseClient.channel('rooms_channel')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${currentRoom.id}` }, payload => {
             const oldRoom = currentRoom;
@@ -191,7 +196,7 @@ function updateLobbyUI() {
 }
 
 // ==========================================
-// 5. LE MOTEUR DU JEU (Piloté par l'Hôte)
+// 5. LE MOTEUR DU JEU
 // ==========================================
 
 function getSeededRandom(seed) { let x = Math.sin(seed++) * 10000; return x - Math.floor(x); }
@@ -204,12 +209,9 @@ function seededShuffle(array, seedStr) {
     }
 }
 
-// Bouton que seul l'hôte peut voir
 document.getElementById('start-game-btn').addEventListener('click', async () => {
     totalRounds = parseInt(document.getElementById('setting-rounds').value);
     roundTime = parseInt(document.getElementById('setting-time').value);
-    
-    // Le chrono magique : Heure actuelle + 2s (Animation Round) + Temps du Round
     const endTime = Date.now() + 2000 + (roundTime * 1000); 
 
     await supabaseClient.from('rooms').update({ 
@@ -218,7 +220,6 @@ document.getElementById('start-game-btn').addEventListener('click', async () => 
     }).eq('id', currentRoom.id);
 });
 
-// Appelé par le Realtime pour TOUT LE MONDE
 function launchRoundUI(roundNum) {
     currentRound = roundNum;
     totalRounds = currentRoom.total_rounds;
@@ -231,7 +232,6 @@ function launchRoundUI(roundNum) {
     document.getElementById('animated-bg').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     
-    // On réinitialise l'interface
     gameLayer.clearLayers(); marker = null;
     document.getElementById('result-overlay').classList.add('hidden');
     document.getElementById('result-modal').classList.add('hidden');
@@ -243,14 +243,13 @@ function launchRoundUI(roundNum) {
     
     viewer.loadScene(gameLocations[currentRound - 1].id);
     
-    // Animation du Round (qui calcule le délai restant dynamiquement)
     const announcer = document.getElementById('round-announcer');
     document.getElementById('round-title-text').innerText = "ROUND " + currentRound;
     announcer.classList.remove('hidden');
     map.off('click');
     
     const remainingMs = currentRoom.round_end_time - Date.now();
-    const delay = (remainingMs > roundTime * 1000) ? 2000 : 0; // Si le temps restant est > au temps du round, on attend l'anim
+    const delay = (remainingMs > roundTime * 1000) ? 2000 : 0; 
 
     setTimeout(() => {
         announcer.classList.add('hidden');
@@ -261,7 +260,6 @@ function launchRoundUI(roundNum) {
     }, delay);
 }
 
-// Fonction spéciale pour te remettre au bon endroit quand tu F5 !
 function syncGameFromDB(room) {
     currentRoom = room;
     totalRounds = room.total_rounds;
@@ -336,7 +334,6 @@ function startTimerDB() {
     
     clearInterval(timerInterval);
     timerInterval = setInterval(() => {
-        // Chaque seconde, on compare l'heure locale avec l'heure de fin DB (Sync Parfaite)
         const remainingMs = currentRoom.round_end_time - Date.now();
         timeLeft = Math.ceil(remainingMs / 1000);
         
@@ -395,7 +392,6 @@ async function processRoundResult() {
         document.getElementById('distanceDisplay').innerText = "Temps écoulé !";
     }
 
-    // ENVOI DU SCORE À SUPABASE
     const meInDB = players.find(p => p.id === myPlayer.id);
     const currentDBScore = meInDB ? meInDB.score : myPlayer.score;
     await supabaseClient.from('players').update({ score: currentDBScore + myScore }).eq('id', myPlayer.id);
@@ -483,7 +479,6 @@ function startWaitingLobby() {
             if (currentRound >= totalRounds) {
                 showPodium();
             } else {
-                // SEUL L'HÔTE CHANGE LE ROUND DANS LA BDD !
                 if (myPlayer.is_host) {
                     const nextRound = currentRound + 1;
                     const endTime = Date.now() + 2000 + (currentRoom.round_time * 1000);
