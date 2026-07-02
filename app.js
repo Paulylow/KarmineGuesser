@@ -107,16 +107,13 @@ const mapWrapper = document.getElementById('map-wrapper');
 const timerDisplay = document.getElementById('timer-display');
 const msgBox = document.getElementById('waiting-msg');
 
+// 📍 C'est ici que la magie opère ! On garde uniquement l'observer 
+// pour la fluidité, mais on a retiré le code qui forçait la carte à se remettre à zéro au survol.
 const resizeObserver = new ResizeObserver(() => {
     map.invalidateSize({ pan: false });
 });
 resizeObserver.observe(document.getElementById('map-container'));
 
-document.getElementById('map-container').addEventListener('transitionend', function(e) {
-    if (e.target.id === 'map-container' && !hasValidated) {
-        map.fitBounds(bounds);
-    }
-});
 
 // ==========================================
 // 4. ANIMATION DE ROUND & CHRONO
@@ -142,7 +139,7 @@ function announceRound() {
         announcer.classList.add('hidden');
         
         map.invalidateSize(); 
-        map.fitBounds(bounds);
+        map.fitBounds(bounds); // La carte se remet à zéro SEULEMENT au début du round !
         
         enableMapClick();
         startTimer();
