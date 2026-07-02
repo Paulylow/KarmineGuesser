@@ -16,22 +16,33 @@ body, html {
     height: 100vh;
     overflow: hidden;
     font-family: 'Satoshi', sans-serif;
-    /* Le fond global du jeu reste noir pour les panoramas */
-    background: var(--black); 
+    background: var(--black); /* Fond noir pour le jeu 360 */
 }
 
 /* =========================================
-   FOND ANIMÉ (Visible uniquement sur les écrans clairs)
+   FOND ANIMÉ (BLANC AVEC LOGOS)
 ========================================= */
 #animated-bg {
-    position: fixed; top: 0; left: 0; width: 200vw; height: 200vh;
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: var(--offwhite); /* Fond blanc cassé */
+    z-index: 150; /* Au dessus du jeu, en dessous du lobby */
+    transition: opacity 0.5s ease;
+}
+
+#animated-bg.hidden {
+    opacity: 0; pointer-events: none; z-index: -10;
+}
+
+/* L'image qui défile */
+#animated-bg::before {
+    content: "";
+    position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
     background-image: url('logo.png');
     background-size: 100px 100px;
     background-repeat: repeat;
-    opacity: 0.05; 
-    z-index: -100;
-    pointer-events: none;
+    opacity: 0.05; /* Très discret */
     animation: scrollBg 30s linear infinite;
+    pointer-events: none;
 }
 
 @keyframes scrollBg {
@@ -49,18 +60,19 @@ body, html {
 .screen.hidden { opacity: 0; pointer-events: none; z-index: -10; }
 #game-screen { z-index: 1; }
 
-/* ===== ÉCRAN CONNEXION, LOBBY & PODIUM (THÈME CLAIR) ===== */
+/* ===== ÉCRAN CONNEXION, LOBBY & PODIUM ===== */
 #login-screen, #lobby-screen, #podium-screen {
-    background: #F4F3EF; /* Fond clair */
+    background: transparent; /* Rend transparent pour voir le animated-bg */
     display: flex; justify-content: center; align-items: center; flex-direction: column;
 }
 
+/* Les boites blanches au centre */
 .lobby-container, .podium-container {
     width: 90%; max-width: 600px;
-    background: #FFFFFF; /* Boîte blanche */
+    background: #FFFFFF; 
     border: 2px solid var(--cyan);
     border-radius: 12px; padding: 40px; text-align: center;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
 }
 
 .login-box { max-width: 450px; }
@@ -108,7 +120,7 @@ body, html {
     cursor: pointer; margin-top: 15px; font-family: 'Satoshi', sans-serif;
 }
 
-/* ===== LEADERBOARD EN DIRECT (DÉPLACÉ À DROITE) ===== */
+/* ===== LEADERBOARD EN DIRECT ===== */
 .live-leaderboard {
     position: absolute; top: 110px; right: 40px; z-index: 10;
     background: rgba(10, 10, 10, 0.85); border: 2px solid var(--cyan);
@@ -219,7 +231,7 @@ body, html {
     border-top: 1px solid #ddd; padding-top: 15px;
 }
 
-/* ===== ANIMATION ROUND (Sur fond noir forcé pour la lisibilité) ===== */
+/* ===== ANIMATION ROUND ===== */
 #round-announcer { background: rgba(10, 10, 10, 0.95); z-index: 100; display: flex; justify-content: center; align-items: center; }
 .round-title {
     font-family: 'Clash Display', sans-serif; font-size: 120px; color: var(--cyan);
