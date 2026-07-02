@@ -61,6 +61,8 @@ async function checkSession() {
                 fetchPlayers();
                 
                 if (room.status === 'playing') {
+                    // 📍 FIX : On cache de force le menu de connexion avant de resynchroniser
+                    document.getElementById('login-screen').classList.add('hidden');
                     syncGameFromDB(room);
                     return; 
                 }
@@ -68,7 +70,6 @@ async function checkSession() {
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('lobby-screen').classList.remove('hidden');
                 
-                // 📍 CORRECTION DE L'AFFICHAGE HÔTE / INVITÉ
                 if (myPlayer.is_host) {
                     document.getElementById('host-settings').classList.remove('hidden');
                     document.getElementById('waiting-host-msg').classList.add('hidden');
@@ -125,7 +126,6 @@ document.getElementById('join-lobby-btn').addEventListener('click', async () => 
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('lobby-screen').classList.remove('hidden');
         
-        // 📍 CORRECTION DE L'AFFICHAGE HÔTE / INVITÉ
         if (isHost) {
             document.getElementById('host-settings').classList.remove('hidden');
             document.getElementById('waiting-host-msg').classList.add('hidden');
@@ -228,6 +228,7 @@ function launchRoundUI(roundNum) {
     document.getElementById('total-round-display').innerText = totalRounds;
     document.getElementById('round-display').innerText = currentRound;
     
+    document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('animated-bg').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
@@ -260,6 +261,7 @@ function launchRoundUI(roundNum) {
     }, delay);
 }
 
+// 📍 LA FONCTION F5 CORRIGÉE
 function syncGameFromDB(room) {
     currentRoom = room;
     totalRounds = room.total_rounds;
@@ -272,25 +274,33 @@ function syncGameFromDB(room) {
     seededShuffle(allLocations, currentRoom.room_code);
     gameLocations = allLocations.slice(0, totalRounds);
 
+    // 📍 On s'assure que TOUT EST CACHÉ proprement
+    document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('animated-bg').classList.add('hidden');
+    document.getElementById('podium-screen').classList.add('hidden');
+    
     document.getElementById('game-screen').classList.remove('hidden');
 
-    viewer.loadScene(gameLocations[currentRound - 1].id);
-    map.invalidateSize(); resetMapZoom();
+    // 📍 FIX PANORAMA : On attend une demi-seconde que le lecteur soit prêt
+    setTimeout(() => {
+        viewer.loadScene(gameLocations[currentRound - 1].id);
+        map.invalidateSize(); 
+        resetMapZoom();
 
-    const remainingMs = currentRoom.round_end_time - Date.now();
-    if (remainingMs > 0) {
-        enableMapClick();
-        startTimerDB();
-    } else {
-        document.getElementById('distanceDisplay').innerText = "Temps écoulé !";
-        document.getElementById('result-overlay').classList.remove('hidden');
-        document.getElementById('result-modal').classList.remove('hidden');
-        mapWrapper.classList.add('result-mode');
-        hasValidated = true;
-        startWaitingLobby();
-    }
+        const remainingMs = currentRoom.round_end_time - Date.now();
+        if (remainingMs > 0) {
+            enableMapClick();
+            startTimerDB();
+        } else {
+            document.getElementById('distanceDisplay').innerText = "Temps écoulé !";
+            document.getElementById('result-overlay').classList.remove('hidden');
+            document.getElementById('result-modal').classList.remove('hidden');
+            mapWrapper.classList.add('result-mode');
+            hasValidated = true;
+            startWaitingLobby();
+        }
+    }, 500);
 }
 
 // ==========================================
