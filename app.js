@@ -1,7 +1,13 @@
 // ==========================================
-// 1. CONFIGURATION DES LIEUX
+// 1. INITIALISATION SUPABASE
 // ==========================================
+const supabaseUrl = 'https://fokdgworzsmsjwqvocxb.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZva2Rnd29yenNtanN3cXZvY3hiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMDQ5MDIsImV4cCI6MjA5ODU4MDkwMn0.TmFmdVYz4qh9FKgZdtOsHEUUT81Q0fQI38oMPTIX-ek';
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+// ==========================================
+// 2. CONFIGURATION DES LIEUX
+// ==========================================
 const allLocations = [
     { id: 'Lieu1', x: 634.0625, y: 809.5625 }, { id: 'Lieu2', x: 377.5, y: 779.4375 }, 
     { id: 'Lieu3', x: 496.375, y: 992.4375 }, { id: 'Lieu4', x: 293.06264472481286, y: 958.6056737754375 },
@@ -17,57 +23,109 @@ const allLocations = [
 const maxScorePerRound = 5000;
 let totalRounds = 5; 
 let roundTime = 30; 
+let currentRound = 1;
+let gameLocations = []; 
 
-// ==========================================
-// 2. GESTION DE LA SESSION JOUEUR
-// ==========================================
-
+// Variables Multijoueur
 let myPlayer = null;
+let currentRoom = null;
 let players = []; 
 
-function checkSession() {
-    const savedUser = localStorage.getItem('kg_user');
-    if (savedUser) {
-        myPlayer = JSON.parse(savedUser);
-        joinLobby(myPlayer);
-    } else {
-        document.getElementById('login-screen').classList.remove('hidden');
-    }
-}
-
-document.getElementById('join-lobby-btn').addEventListener('click', () => {
+// ==========================================
+// 3. GESTION DE LA CONNEXION & LOBBY
+// ==========================================
+document.getElementById('join-lobby-btn').addEventListener('click', async () => {
     const rpName = document.getElementById('rp-name').value.trim();
     const mcPseudo = document.getElementById('mc-pseudo').value.trim();
-    if (rpName === "" || mcPseudo === "") { alert("Merci de remplir ton Nom RP et ton Pseudo Minecraft !"); return; }
-    myPlayer = { rpName: rpName, mcPseudo: mcPseudo, score: 0, isHost: true };
-    localStorage.setItem('kg_user', JSON.stringify(myPlayer));
-    joinLobby(myPlayer);
+    let roomCode = document.getElementById('room-code').value.trim().toUpperCase();
+
+    if (rpName === "" || mcPseudo === "" || roomCode === "") { 
+        alert("Remplis tous les champs, y compris le code de la partie !"); return; 
+    }
+
+    const btn = document.getElementById('join-lobby-btn');
+    btn.innerText = "Connexion...";
+    btn.disabled = true;
+
+    try {
+        // 1. Chercher si la salle existe déjà
+        let { data: room, error: roomError } = await supabase.from('rooms').select('*').eq('room_code', roomCode).single();
+        
+        let isHost = false;
+        
+        // 2. Si elle n'existe pas, on la crée (On devient l'Hôte)
+        if (!room) {
+            const { data: newRoom, error: createError } = await supabase.from('rooms').insert([{ room_code: roomCode, status: 'waiting' }]).select().single();
+            room = newRoom;
+            isHost = true;
+        }
+
+        currentRoom = room;
+        document.getElementById('display-room-code').innerText = room.room_code;
+
+        // 3. Ajouter le joueur dans la base de données
+        const { data: player, error: playerError } = await supabase.from('players').insert([{ 
+            room_id: room.id, 
+            rp_name: rpName, 
+            mc_pseudo: mcPseudo, 
+            is_host: isHost 
+        }]).select().single();
+
+        myPlayer = player;
+        
+        // 4. Activer les écoutes Temps Réel (Realtime)
+        setupRealtimeSubscriptions();
+
+        // 5. Afficher le Lobby
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('lobby-screen').classList.remove('hidden');
+        
+        // Afficher/Cacher les paramètres si on est hôte
+        if (isHost) {
+            document.getElementById('host-settings').classList.remove('hidden');
+            document.getElementById('waiting-host-msg').classList.add('hidden');
+        }
+
+        // Récupérer tous les joueurs de la salle
+        fetchPlayers();
+
+    } catch (err) {
+        console.error("Erreur de connexion:", err);
+        alert("Erreur de connexion à la base de données.");
+        btn.innerText = "Rejoindre le Lobby";
+        btn.disabled = false;
+    }
 });
 
-document.getElementById('disconnect-btn').addEventListener('click', () => {
-    localStorage.removeItem('kg_user');
+// Quitter / Déconnexion
+document.getElementById('disconnect-btn').addEventListener('click', async () => {
+    if (myPlayer) await supabase.from('players').delete().eq('id', myPlayer.id);
     location.reload();
 });
 
-// ==========================================
-// 3. LOGIQUE DU LOBBY
-// ==========================================
+// Écoutes Temps Réel
+function setupRealtimeSubscriptions() {
+    // Écouter les nouveaux joueurs et scores
+    supabase.channel('players_channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${currentRoom.id}` }, payload => {
+            fetchPlayers();
+        }).subscribe();
 
-function joinLobby(user) {
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('lobby-screen').classList.remove('hidden');
+    // Écouter si l'hôte lance la partie
+    supabase.channel('rooms_channel')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${currentRoom.id}` }, payload => {
+            currentRoom = payload.new;
+            if (currentRoom.status === 'playing' && document.getElementById('game-screen').classList.contains('hidden')) {
+                launchGameUI();
+            }
+        }).subscribe();
+}
 
-    // On rajoute plus de joueurs pour bien tester le Top 5
-    players = [
-        { ...user, isMe: true }, 
-        { rpName: 'Kotei', mcPseudo: 'Kotei', score: 0, isMe: false, isHost: false },
-        { rpName: 'Fatiiiih', mcPseudo: 'Fatih', score: 0, isMe: false, isHost: false },
-        { rpName: 'Kameto', mcPseudo: 'Kameto', score: 0, isMe: false, isHost: false },
-        { rpName: 'Etoiles', mcPseudo: 'Etoiles', score: 0, isMe: false, isHost: false },
-        { rpName: 'Bichou', mcPseudo: 'Bichouu', score: 0, isMe: false, isHost: false },
-        { rpName: 'Tiky', mcPseudo: 'Tiky', score: 0, isMe: false, isHost: false }
-    ];
+async function fetchPlayers() {
+    const { data } = await supabase.from('players').select('*').eq('room_id', currentRoom.id).order('score', { ascending: false });
+    players = data || [];
     updateLobbyUI();
+    updateLeaderboardDisplay();
 }
 
 function updateLobbyUI() {
@@ -75,56 +133,68 @@ function updateLobbyUI() {
     lobbyPlayersDiv.innerHTML = '';
     
     players.forEach(p => {
-        const avatarUrl = `https://minotar.net/helm/${p.mcPseudo}/100.png`;
+        const isMe = p.id === myPlayer.id;
+        const avatarUrl = `https://minotar.net/helm/${p.mc_pseudo}/100.png`;
         lobbyPlayersDiv.innerHTML += `
-            <div class="player-item ${p.isMe ? 'is-me' : ''}">
-                <img src="${avatarUrl}" class="mc-head" alt="${p.mcPseudo}" onerror="this.src='https://minotar.net/helm/Steve/100.png'">
+            <div class="player-item ${isMe ? 'is-me' : ''}">
+                <img src="${avatarUrl}" class="mc-head" alt="${p.mc_pseudo}" onerror="this.src='https://minotar.net/helm/Steve/100.png'">
                 <div class="player-info">
-                    <span class="player-rpname">${p.rpName}</span>
-                    <span class="player-pseudo">@${p.mcPseudo}</span>
+                    <span class="player-rpname">${p.rp_name}</span>
+                    <span class="player-pseudo">@${p.mc_pseudo}</span>
                 </div>
-                ${p.isHost ? '<span class="host-crown">👑</span>' : '<span style="color:#00e676; font-size:12px; font-weight:700; text-transform:uppercase;">Prêt</span>'}
+                ${p.is_host ? '<span class="host-crown">👑</span>' : '<span style="color:#00e676; font-size:12px; font-weight:700; text-transform:uppercase;">Prêt</span>'}
             </div>
         `;
     });
+}
 
-    if (myPlayer.isHost) {
-        document.getElementById('host-settings').classList.remove('hidden');
-        document.getElementById('waiting-host-msg').classList.add('hidden');
-    } else {
-        document.getElementById('host-settings').classList.add('hidden');
-        document.getElementById('waiting-host-msg').classList.remove('hidden');
+// ==========================================
+// 4. LANCEMENT DU JEU
+// ==========================================
+
+// Algorithme magique pour que tout le monde ait les mêmes maps dans le même ordre grâce au Code de Salle !
+function getSeededRandom(seed) { let x = Math.sin(seed++) * 10000; return x - Math.floor(x); }
+function seededShuffle(array, seedStr) {
+    let seed = 0;
+    for (let i = 0; i < seedStr.length; i++) seed += seedStr.charCodeAt(i);
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(getSeededRandom(seed++) * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
     }
 }
 
-document.getElementById('start-game-btn').addEventListener('click', () => {
+document.getElementById('start-game-btn').addEventListener('click', async () => {
     totalRounds = parseInt(document.getElementById('setting-rounds').value);
     roundTime = parseInt(document.getElementById('setting-time').value);
     
+    // L'hôte met à jour la base de données pour dire "La partie commence"
+    await supabase.from('rooms').update({ status: 'playing', total_rounds: totalRounds, round_time: roundTime }).eq('id', currentRoom.id);
+    // (Le changement de statut va déclencher launchGameUI chez tout le monde grâce au Realtime)
+});
+
+function launchGameUI() {
+    totalRounds = currentRoom.total_rounds;
+    roundTime = currentRoom.round_time;
     document.getElementById('total-round-display').innerText = totalRounds;
-    document.getElementById('lobby-screen').classList.add('hidden');
     
-    // 📍 On cache le fond animé pendant qu'on joue !
+    document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('animated-bg').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     
-    shuffleArray(allLocations);
+    // Mélange identique pour tous les joueurs de cette salle
+    seededShuffle(allLocations, currentRoom.room_code);
     gameLocations = allLocations.slice(0, totalRounds); 
     
     setTimeout(() => {
         map.invalidateSize();
-        updateLeaderboardDisplay(); 
         announceRound();
     }, 500);
-});
+}
 
-checkSession();
 
 // ==========================================
-// 4. PRÉPARATION 360 & CARTE LEAFLET
+// 5. PRÉPARATION 360 & CARTE LEAFLET
 // ==========================================
-
-let currentRound = 1;
 let marker = null;
 let timerInterval, waitInterval;
 let timeLeft = roundTime;
@@ -135,20 +205,9 @@ const pannellumScenes = {};
 allLocations.forEach(loc => {
     pannellumScenes[loc.id] = {
         "type": "cubemap",
-        "cubeMap": [
-            `panoramas/${loc.id}/panorama_0.png`, `panoramas/${loc.id}/panorama_1.png`,
-            `panoramas/${loc.id}/panorama_2.png`, `panoramas/${loc.id}/panorama_3.png`,
-            `panoramas/${loc.id}/panorama_4.png`, `panoramas/${loc.id}/panorama_5.png`
-        ]
+        "cubeMap": [`panoramas/${loc.id}/panorama_0.png`, `panoramas/${loc.id}/panorama_1.png`, `panoramas/${loc.id}/panorama_2.png`, `panoramas/${loc.id}/panorama_3.png`, `panoramas/${loc.id}/panorama_4.png`, `panoramas/${loc.id}/panorama_5.png`]
     };
 });
-
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-}
 
 const viewer = pannellum.viewer('panorama', {
     "default": { "firstScene": allLocations[0].id, "autoLoad": true, "showZoomCtrl": false, "mouseZoom": true },
@@ -156,13 +215,7 @@ const viewer = pannellum.viewer('panorama', {
 });
 
 const bounds = [[0, 0], [1427, 1427]];
-
-// 📍 Initialisation de la carte SANS minZoom hardcodé, on le gère mathématiquement
-const map = L.map('map', { 
-    crs: L.CRS.Simple, maxZoom: 4, zoomSnap: 0, zoomDelta: 0.5, 
-    zoomControl: false, attributionControl: false, 
-    maxBounds: bounds, maxBoundsViscosity: 1.0 
-});
+const map = L.map('map', { crs: L.CRS.Simple, maxZoom: 4, zoomSnap: 0, zoomDelta: 0.5, zoomControl: false, attributionControl: false, maxBounds: bounds, maxBoundsViscosity: 1.0 });
 L.imageOverlay('maps/map.png', bounds).addTo(map);
 const gameLayer = L.layerGroup().addTo(map);
 
@@ -171,22 +224,17 @@ const mapWrapper = document.getElementById('map-wrapper');
 const timerDisplay = document.getElementById('timer-display');
 const msgBox = document.getElementById('waiting-msg');
 
-const resizeObserver = new ResizeObserver(() => { 
-    map.invalidateSize({ pan: false }); 
-});
+const resizeObserver = new ResizeObserver(() => { map.invalidateSize({ pan: false }); });
 resizeObserver.observe(document.getElementById('map-container'));
 
-// 📍 LA FONCTION MAGIQUE POUR LE ZOOM PARFAIT
 function resetMapZoom() {
-    // Largeur de la boite au survol (480px)
-    // On calcule le zoom pour que les 1427px de la map rentrent pile dans 480px
     const optimalZoom = Math.log2(480 / 1427); 
     map.setMinZoom(optimalZoom);
     map.setView([713.5, 713.5], optimalZoom);
 }
 
 // ==========================================
-// 5. ANIMATION DE ROUND & CHRONO
+// 6. JEU & RÉSULTATS
 // ==========================================
 
 function announceRound() {
@@ -196,7 +244,6 @@ function announceRound() {
     announcerText.style.animation = 'none';
     announcerText.offsetHeight; 
     announcerText.style.animation = null;
-
     announcerText.innerText = "ROUND " + currentRound;
     announcer.classList.remove('hidden');
     
@@ -207,10 +254,7 @@ function announceRound() {
     setTimeout(() => {
         announcer.classList.add('hidden');
         map.invalidateSize(); 
-        
-        // 📍 On applique le zoom et on centre la carte parfaitement !
         resetMapZoom();
-        
         enableMapClick();
         startTimer();
     }, 2000);
@@ -253,11 +297,7 @@ function enableMapClick() {
 
 guessBtn.addEventListener('click', () => { if(marker && !hasValidated) processRoundResult(); });
 
-// ==========================================
-// 6. RÉSULTATS ET LEADERBOARD TOP 5
-// ==========================================
-
-function processRoundResult() {
+async function processRoundResult() {
     hasValidated = true; 
     map.off('click'); 
     guessBtn.disabled = true;
@@ -284,13 +324,9 @@ function processRoundResult() {
         document.getElementById('distanceDisplay').innerText = "Temps écoulé !";
     }
 
-    players.forEach(p => {
-        if (p.isMe) p.score += myScore;
-        else p.score += Math.floor(Math.random() * 3900) + 1000;
-    });
-
-    players.sort((a, b) => b.score - a.score);
-    updateLeaderboardDisplay();
+    // ENVOI DU SCORE À SUPABASE
+    await supabase.from('players').update({ score: myPlayer.score + myScore }).eq('id', myPlayer.id);
+    myPlayer.score += myScore;
 
     document.getElementById('scoreDisplay').innerText = myScore;
     L.circleMarker([targetLocation.y, targetLocation.x], {color: '#0A0A0A', fillColor: '#00B4D8', fillOpacity: 1, radius: 8}).addTo(gameLayer);
@@ -313,39 +349,33 @@ function updateLeaderboardDisplay() {
     const lbContent = document.getElementById('leaderboard-content');
     lbContent.innerHTML = '';
     
-    // 📍 Affichage du Top 5
     for (let i = 0; i < 5 && i < players.length; i++) {
         const p = players[i];
         lbContent.innerHTML += `
-            <div class="lb-row ${p.isMe ? 'me' : ''}">
+            <div class="lb-row ${p.id === myPlayer.id ? 'me' : ''}">
                 <div style="display:flex; align-items:center;">
                     <span style="width: 20px; font-size: 13px;">#${i+1}</span>
-                    <img src="https://minotar.net/helm/${p.mcPseudo}/30.png" class="lb-head" onerror="this.src='https://minotar.net/helm/Steve/30.png'">
-                    <span>${p.rpName}</span>
+                    <img src="https://minotar.net/helm/${p.mc_pseudo}/30.png" class="lb-head" onerror="this.src='https://minotar.net/helm/Steve/30.png'">
+                    <span>${p.rp_name}</span>
                 </div>
                 <span>${p.score}</span>
             </div>`;
     }
 
-    // 📍 Si le joueur n'est pas dans le Top 5, on l'affiche en dessous
-    const myIndex = players.findIndex(p => p.isMe);
+    const myIndex = players.findIndex(p => p.id === myPlayer.id);
     if (myIndex >= 5) {
         const myP = players[myIndex];
         lbContent.innerHTML += `
             <div class="lb-row divider me">
                 <div style="display:flex; align-items:center;">
                     <span style="width: 20px; font-size: 13px;">#${myIndex+1}</span>
-                    <img src="https://minotar.net/helm/${myP.mcPseudo}/30.png" class="lb-head" onerror="this.src='https://minotar.net/helm/Steve/30.png'">
-                    <span>${myP.rpName}</span>
+                    <img src="https://minotar.net/helm/${myP.mc_pseudo}/30.png" class="lb-head" onerror="this.src='https://minotar.net/helm/Steve/30.png'">
+                    <span>${myP.rp_name}</span>
                 </div>
                 <span>${myP.score}</span>
             </div>`;
     }
 }
-
-// ==========================================
-// 7. TRANSITION & PODIUM
-// ==========================================
 
 function startWaitingLobby() {
     if(isTransitioning) return;
@@ -362,7 +392,6 @@ function startWaitingLobby() {
     waitInterval = setInterval(() => {
         transitionTime--;
         updateMsg();
-
         if (transitionTime <= 0) {
             clearInterval(waitInterval);
             if (currentRound >= totalRounds) showPodium();
@@ -374,7 +403,6 @@ function startWaitingLobby() {
 function goToNextRound() {
     currentRound++;
     document.getElementById('round-display').innerText = currentRound;
-
     gameLayer.clearLayers();
     marker = null;
     document.getElementById('result-overlay').classList.add('hidden');
@@ -389,7 +417,6 @@ function goToNextRound() {
 }
 
 function showPodium() {
-    // 📍 On réaffiche le fond animé pour le Podium !
     document.getElementById('animated-bg').classList.remove('hidden');
     document.getElementById('game-screen').classList.add('hidden');
     document.getElementById('podium-screen').classList.remove('hidden');
@@ -399,19 +426,26 @@ function showPodium() {
 
     podiumContent.innerHTML = `
         <div class="podium-step second">
-            <img src="https://minotar.net/helm/${p2.mcPseudo}/50.png" class="mc-head" style="margin-bottom:10px;">
-            <div class="podium-name">${p2 ? p2.rpName : ''}</div>
-            <div class="podium-score">${p2 ? p2.score : ''}</div>
+            ${p2 ? `<img src="https://minotar.net/helm/${p2.mc_pseudo}/50.png" class="mc-head" style="margin-bottom:10px;">
+            <div class="podium-name">${p2.rp_name}</div>
+            <div class="podium-score">${p2.score}</div>` : ''}
         </div>
         <div class="podium-step first">
-            <img src="https://minotar.net/helm/${p1.mcPseudo}/50.png" class="mc-head" style="margin-bottom:10px; border-color: #FFD700;">
-            <div class="podium-name" style="font-size: 22px;">👑 ${p1.rpName}</div>
-            <div class="podium-score">${p1.score}</div>
+            ${p1 ? `<img src="https://minotar.net/helm/${p1.mc_pseudo}/50.png" class="mc-head" style="margin-bottom:10px; border-color: #FFD700;">
+            <div class="podium-name" style="font-size: 22px;">👑 ${p1.rp_name}</div>
+            <div class="podium-score">${p1.score}</div>` : ''}
         </div>
         <div class="podium-step third">
-            <img src="https://minotar.net/helm/${p3.mcPseudo}/50.png" class="mc-head" style="margin-bottom:10px;">
-            <div class="podium-name">${p3 ? p3.rpName : ''}</div>
-            <div class="podium-score">${p3 ? p3.score : ''}</div>
+            ${p3 ? `<img src="https://minotar.net/helm/${p3.mc_pseudo}/50.png" class="mc-head" style="margin-bottom:10px;">
+            <div class="podium-name">${p3.rp_name}</div>
+            <div class="podium-score">${p3.score}</div>` : ''}
         </div>
     `;
 }
+
+document.getElementById('return-lobby-btn').addEventListener('click', async () => {
+    // Supprimer la salle si c'est l'hôte, sinon quitter juste.
+    if (myPlayer.is_host) await supabase.from('rooms').delete().eq('id', currentRoom.id);
+    else await supabase.from('players').delete().eq('id', myPlayer.id);
+    location.reload();
+});
