@@ -1,25 +1,44 @@
 // ==========================================
-// 1. CONFIGURATION (MODE DEV - JUSTE 17, 18, 19)
+// 1. CONFIGURATION (BASE DE DONNÉES FINALE)
 // ==========================================
 
 const allLocations = [
-    { id: 'Lieu17', x: 500, y: 500 },
-    { id: 'Lieu18', x: 500, y: 500 },
-    { id: 'Lieu19', x: 500, y: 500 }
+    { id: 'Lieu1', x: 634.0625, y: 809.5625 },
+    { id: 'Lieu2', x: 377.5, y: 779.4375 }, 
+    { id: 'Lieu3', x: 496.375, y: 992.4375 },
+    { id: 'Lieu4', x: 293.06264472481286, y: 958.6056737754375 },
+    { id: 'Lieu5', x: 505.5625, y: 730.3125 },
+    { id: 'Lieu6', x: 273.3125, y: 912.1875 },
+    { id: 'Lieu7', x: 930.6405894730218, y: 841.7385479362847 },
+    { id: 'Lieu8', x: 944.4112590713203, y: 630.8679668762923 },
+    { id: 'Lieu9', x: 1047.249507588725, y: 551.226798181108 },
+    { id: 'Lieu10', x: 1072.8678913777107, y: 601.7731135589685 },
+    { id: 'Lieu11', x: 1019.6200190354904, y: 582.2998689750975 },
+    { id: 'Lieu12', x: 1037.2179155741558, y: 152.22015514203198 },
+    { id: 'Lieu13', x: 875.5116584116552, y: 375.5173030727776 },
+    { id: 'Lieu14', x: 878.4948340752787, y: 431.1085119913018 },
+    { id: 'Lieu15', x: 728.6828241093921, y: 428.20462478819366 },
+    // On skip le 16 !
+    { id: 'Lieu17', x: 631.5622699443798, y: 327.5529679698231 },
+    { id: 'Lieu18', x: 482.4032682804576, y: 230.4027768947771 },
+    { id: 'Lieu19', x: 662.6477195672688, y: 100.57379001605248 }
 ];
 
 const maxScorePerRound = 5000;
-const totalRounds = allLocations.length; // Sera égal à 3
+const totalRounds = 5; // On tire 5 lieux au hasard par partie
+const roundTime = 30; // 30 secondes pour trouver
 
 let currentRound = 1;
 let totalScore = 0;
-let gameLocations = allLocations; 
+let gameLocations = []; 
 let marker = null;
-let hasValidated = false;
 
-// Met à jour l'affichage du total (3) en haut à droite
-const totalDisplay = document.getElementById('total-rounds-display');
-if (totalDisplay) totalDisplay.innerText = totalRounds;
+let timerInterval;
+let waitInterval;
+let timeLeft = roundTime;
+let transitionTime = 5;
+let hasValidated = false;
+let isTransitioning = false;
 
 // ==========================================
 // 2. PRÉPARATION 360 (PANNELLUM)
@@ -39,6 +58,16 @@ allLocations.forEach(loc => {
         ]
     };
 });
+
+// Mélange des lieux pour chaque nouvelle partie !
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+shuffleArray(allLocations);
+gameLocations = allLocations.slice(0, totalRounds); 
 
 const viewer = pannellum.viewer('panorama', {
     "default": {
@@ -75,7 +104,8 @@ const gameLayer = L.layerGroup().addTo(map);
 
 const guessBtn = document.getElementById('guess-btn');
 const mapWrapper = document.getElementById('map-wrapper');
-const nextBtn = document.getElementById('next-btn');
+const timerDisplay = document.getElementById('timer-display');
+const msgBox = document.getElementById('waiting-msg');
 
 const resizeObserver = new ResizeObserver(() => {
     map.invalidateSize({ pan: false });
@@ -89,22 +119,74 @@ document.getElementById('map-container').addEventListener('transitionend', funct
 });
 
 // ==========================================
-// 4. LOGIQUE DES ROUNDS
+// 4. ANIMATION DE ROUND & CHRONO
 // ==========================================
 
-function startRound() {
+function announceRound() {
+    const announcer = document.getElementById('round-announcer');
+    const announcerText = document.getElementById('round-title-text');
+    
+    // Reset l'animation CSS
+    announcerText.style.animation = 'none';
+    announcerText.offsetHeight; 
+    announcerText.style.animation = null;
+
+    announcerText.innerText = "ROUND " + currentRound;
+    announcer.classList.remove('hidden');
+    
+    map.off('click');
+    guessBtn.disabled = true;
+    timerDisplay.innerText = roundTime;
+    
+    setTimeout(() => {
+        announcer.classList.add('hidden');
+        
+        map.invalidateSize(); 
+        map.fitBounds(bounds);
+        
+        enableMapClick();
+        startTimer();
+    }, 2000);
+}
+
+function startTimer() {
+    timeLeft = roundTime;
     hasValidated = false;
-    document.getElementById('timer-display').innerText = "DEV";
-    enableMapClick();
+    isTransitioning = false;
+    
+    timerDisplay.innerText = timeLeft;
+    timerDisplay.classList.remove('timer-warning');
+    
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        timerDisplay.innerText = timeLeft;
+        
+        if (timeLeft <= 5 && !hasValidated) {
+            timerDisplay.classList.add('timer-warning');
+        }
+
+        if (hasValidated && !isTransitioning) {
+            msgBox.innerHTML = `En attente des autres joueurs... (<span id="auto-next-timer">${timeLeft}</span>s)`;
+        }
+        
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            timerDisplay.classList.remove('timer-warning');
+            
+            if (!hasValidated) {
+                processRoundResult(); 
+            } else {
+                startWaitingLobby(); 
+            }
+        }
+    }, 1000);
 }
 
 function enableMapClick() {
     map.on('click', function(e) {
         if (hasValidated) return;
         
-        // 🕵️‍♂️ LES COORDONNÉES APPARAISSENT ICI DANS TA CONSOLE F12
-        console.log("📍 " + gameLocations[currentRound - 1].id + " -> x: " + e.latlng.lng + ", y: " + e.latlng.lat);
-
         if (marker !== null) gameLayer.removeLayer(marker);
         marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(gameLayer);
         
@@ -118,13 +200,14 @@ guessBtn.addEventListener('click', () => {
 });
 
 // ==========================================
-// 5. CINÉMATIQUE DE RÉSULTAT
+// 5. CINÉMATIQUE DE RÉSULTAT ET SCORE
 // ==========================================
 
 function processRoundResult() {
     hasValidated = true; 
     map.off('click'); 
     guessBtn.disabled = true;
+    timerDisplay.classList.remove('timer-warning');
 
     const targetLocation = gameLocations[currentRound - 1];
     let score = 0;
@@ -149,6 +232,8 @@ function processRoundResult() {
 
         document.getElementById('distanceDisplay').innerText = displayDistance + " blocs";
         L.polyline([[clickY, clickX], [targetLocation.y, targetLocation.x]], {color: '#00B4D8', weight: 3, dashArray: '10, 10'}).addTo(gameLayer);
+    } else {
+        document.getElementById('distanceDisplay').innerText = "Temps écoulé !";
     }
 
     totalScore += score;
@@ -165,17 +250,49 @@ function processRoundResult() {
 
         setTimeout(() => {
             document.getElementById('result-modal').classList.remove('hidden');
+
+            if (timeLeft <= 0) {
+                startWaitingLobby();
+            } else {
+                msgBox.innerHTML = `En attente des autres joueurs... (<span id="auto-next-timer">${timeLeft}</span>s)`;
+            }
         }, 1500);
     }, 500);
 }
 
 // ==========================================
-// 6. BOUTON SUIVANT MANUEL
+// 6. COMPTE À REBOURS DE TRANSITION (5s)
 // ==========================================
 
-nextBtn.addEventListener('click', () => {
+function startWaitingLobby() {
+    if(isTransitioning) return;
+    isTransitioning = true;
+    transitionTime = 5;
+
+    function updateMsg() {
+        if (currentRound >= totalRounds) {
+            msgBox.innerHTML = `Partie terminée ! Fin dans <span id="auto-next-timer">${transitionTime}</span>s...`;
+        } else {
+            msgBox.innerHTML = `Prochain round dans <span id="auto-next-timer">${transitionTime}</span>s...`;
+        }
+    }
+    
+    updateMsg();
+
+    clearInterval(waitInterval);
+    waitInterval = setInterval(() => {
+        transitionTime--;
+        updateMsg();
+
+        if (transitionTime <= 0) {
+            clearInterval(waitInterval);
+            goToNextRound();
+        }
+    }, 1000);
+}
+
+function goToNextRound() {
     if (currentRound >= totalRounds) {
-        alert("Terminé ! Tu as les coordonnées des 3 derniers lieux dans ta console.");
         location.reload(); 
         return;
     }
@@ -191,10 +308,10 @@ nextBtn.addEventListener('click', () => {
     guessBtn.innerText = "Placer le point";
 
     setTimeout(() => {
-        map.fitBounds(bounds);
         viewer.loadScene(gameLocations[currentRound - 1].id);
-        startRound();
+        announceRound();
     }, 500);
-});
+}
 
-startRound();
+// Lancement initial
+announceRound();
