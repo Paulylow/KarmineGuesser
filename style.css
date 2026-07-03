@@ -19,8 +19,6 @@ body, html {
     background: var(--black); /* Fond noir par défaut pour le jeu 360 */
 }
 
-/* 📍 LA CLASSE MAGIQUE QUI CACHE LES ELEMENTS (Hôte/Invité) */
-.hidden { display: none !important; }
 
 /* =========================================
    FOND ANIMÉ (BLANC AVEC LOGOS)
