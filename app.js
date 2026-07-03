@@ -35,28 +35,29 @@ let currentRoom = null;
 let players = []; 
 
 // ==========================================
-// 3. SUPER CONTRÔLEUR D'ÉCRANS (La solution antibug)
+// 3. AIGUILLEUR D'ÉCRANS (Anti-Bug 3D)
 // ==========================================
-function hideAllScreens() {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('lobby-screen').style.display = 'none';
-    document.getElementById('game-screen').style.display = 'none';
-    document.getElementById('podium-screen').style.display = 'none';
-    document.getElementById('animated-bg').style.display = 'none';
+function switchScreen(targetScreenId) {
+    // 1. On cache tous les écrans avec l'ancienne méthode (opacity + z-index) qui respecte la 3D
+    ['login-screen', 'lobby-screen', 'game-screen', 'podium-screen'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+    });
+    
+    // 2. On affiche l'écran demandé
+    document.getElementById(targetScreenId).classList.remove('hidden');
+
+    // 3. On gère le fond animé (caché seulement pendant le jeu)
+    if (targetScreenId === 'game-screen') {
+        document.getElementById('animated-bg').classList.add('hidden');
+    } else {
+        document.getElementById('animated-bg').classList.remove('hidden');
+    }
 }
 
-function showScreen(screenId, useFlex = false) {
-    hideAllScreens();
-    if(screenId !== 'game-screen') {
-        document.getElementById('animated-bg').style.display = 'block';
-    }
-    document.getElementById(screenId).style.display = useFlex ? 'flex' : 'block';
-}
 
 // ==========================================
 // 4. GESTION DE LA CONNEXION (ET DU F5)
 // ==========================================
-
 async function checkSession() {
     try {
         const savedUser = localStorage.getItem('kg_user');
@@ -85,23 +86,23 @@ async function checkSession() {
                         return; 
                     }
 
-                    showScreen('lobby-screen', true);
+                    switchScreen('lobby-screen');
                     
                     if (myPlayer.is_host) {
-                        document.getElementById('host-settings').style.display = 'block';
-                        document.getElementById('waiting-host-msg').style.display = 'none';
+                        document.getElementById('host-settings').classList.remove('hidden');
+                        document.getElementById('waiting-host-msg').classList.add('hidden');
                     } else {
-                        document.getElementById('host-settings').style.display = 'none';
-                        document.getElementById('waiting-host-msg').style.display = 'block';
+                        document.getElementById('host-settings').classList.add('hidden');
+                        document.getElementById('waiting-host-msg').classList.remove('hidden');
                     }
                     return;
                 }
             }
         }
-        showScreen('login-screen', true);
+        switchScreen('login-screen');
     } catch (e) {
         console.error("Erreur de session:", e);
-        showScreen('login-screen', true);
+        switchScreen('login-screen');
     }
 }
 
@@ -144,14 +145,14 @@ document.getElementById('join-lobby-btn').addEventListener('click', async () => 
         setupRealtimeSubscriptions();
         fetchPlayers();
 
-        showScreen('lobby-screen', true);
+        switchScreen('lobby-screen');
         
         if (isHost) {
-            document.getElementById('host-settings').style.display = 'block';
-            document.getElementById('waiting-host-msg').style.display = 'none';
+            document.getElementById('host-settings').classList.remove('hidden');
+            document.getElementById('waiting-host-msg').classList.add('hidden');
         } else {
-            document.getElementById('host-settings').style.display = 'none';
-            document.getElementById('waiting-host-msg').style.display = 'block';
+            document.getElementById('host-settings').classList.add('hidden');
+            document.getElementById('waiting-host-msg').classList.remove('hidden');
         }
     } catch (err) {
         alert("❌ Erreur : " + err.message);
@@ -168,7 +169,6 @@ document.getElementById('disconnect-btn').addEventListener('click', async () => 
 // ==========================================
 // 5. SYNCHRONISATION TEMPS RÉEL (REALTIME)
 // ==========================================
-
 function setupRealtimeSubscriptions() {
     supabaseClient.channel('players_channel')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${currentRoom.id}` }, payload => {
@@ -218,7 +218,6 @@ function updateLobbyUI() {
 // ==========================================
 // 6. LE MOTEUR DU JEU
 // ==========================================
-
 function getSeededRandom(seed) { let x = Math.sin(seed++) * 10000; return x - Math.floor(x); }
 function seededShuffle(array, seedStr) {
     let seed = 0;
@@ -248,7 +247,7 @@ function launchRoundUI(roundNum) {
     document.getElementById('total-round-display').innerText = totalRounds;
     document.getElementById('round-display').innerText = currentRound;
     
-    showScreen('game-screen');
+    switchScreen('game-screen');
     
     gameLayer.clearLayers(); marker = null;
     document.getElementById('result-overlay').classList.add('hidden');
@@ -259,27 +258,24 @@ function launchRoundUI(roundNum) {
     seededShuffle(allLocations, currentRoom.room_code);
     gameLocations = allLocations.slice(0, totalRounds); 
     
-    // 📍 LE FIX DE L'ÉCRAN BLEU PANORAMA
-    setTimeout(() => {
-        viewer.resize(); 
-        viewer.loadScene(gameLocations[currentRound - 1].id);
-        
-        const announcer = document.getElementById('round-announcer');
-        document.getElementById('round-title-text').innerText = "ROUND " + currentRound;
-        announcer.classList.remove('hidden');
-        map.off('click');
-        
-        const remainingMs = currentRoom.round_end_time - Date.now();
-        const delay = (remainingMs > roundTime * 1000) ? 2000 : 0; 
+    viewer.resize(); 
+    viewer.loadScene(gameLocations[currentRound - 1].id);
+    
+    const announcer = document.getElementById('round-announcer');
+    document.getElementById('round-title-text').innerText = "ROUND " + currentRound;
+    announcer.classList.remove('hidden');
+    map.off('click');
+    
+    const remainingMs = currentRoom.round_end_time - Date.now();
+    const delay = (remainingMs > roundTime * 1000) ? 2000 : 0; 
 
-        setTimeout(() => {
-            announcer.classList.add('hidden');
-            map.invalidateSize(); 
-            resetMapZoom();
-            enableMapClick();
-            startTimerDB(); 
-        }, delay);
-    }, 100);
+    setTimeout(() => {
+        announcer.classList.add('hidden');
+        map.invalidateSize(); 
+        resetMapZoom();
+        enableMapClick();
+        startTimerDB(); 
+    }, delay);
 }
 
 function syncGameFromDB(room) {
@@ -294,9 +290,8 @@ function syncGameFromDB(room) {
     seededShuffle(allLocations, currentRoom.room_code);
     gameLocations = allLocations.slice(0, totalRounds);
 
-    showScreen('game-screen');
+    switchScreen('game-screen');
 
-    // 📍 LE FIX DE L'ÉCRAN BLEU PANORAMA (Avec F5)
     setTimeout(() => {
         viewer.resize(); 
         viewer.loadScene(gameLocations[currentRound - 1].id);
@@ -351,7 +346,6 @@ function resetMapZoom() {
 // ==========================================
 // 8. JEU, RÉSULTATS & TIMER SUPABASE
 // ==========================================
-
 function startTimerDB() {
     hasValidated = false;
     isTransitioning = false;
@@ -481,7 +475,6 @@ function updateLeaderboardDisplay() {
 // ==========================================
 // 9. TRANSITION & PODIUM MULTIJOUEUR
 // ==========================================
-
 function startWaitingLobby() {
     if(isTransitioning) return;
     isTransitioning = true;
@@ -516,7 +509,7 @@ function startWaitingLobby() {
 }
 
 function showPodium() {
-    showScreen('podium-screen', true);
+    switchScreen('podium-screen');
     
     const podiumContent = document.getElementById('podium-content');
     const p1 = players[0]; const p2 = players[1]; const p3 = players[2];
