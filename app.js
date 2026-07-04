@@ -223,6 +223,11 @@ function updateLobbyUI() {
 // ==========================================
 // 6. LE MOTEUR DU JEU SANS TIMER (MODE DEV)
 // ==========================================
+
+function seededShuffle(array, seedStr) {
+    return array; // Pas de mélange, respecte l'ordre exact.
+}
+
 document.getElementById('start-game-btn').addEventListener('click', async () => {
     totalRounds = allLocations.length; 
     await supabaseClient.from('rooms').update({ 
@@ -253,7 +258,9 @@ function launchRoundUI(roundNum) {
     
     switchScreen('game-ui');
     
-    gameLayer.clearLayers(); marker = null;
+    gameLayer.clearLayers(); 
+    marker = null; // 📍 FIX : Remise à zéro propre du marqueur
+    
     document.getElementById('result-overlay').classList.add('hidden');
     document.getElementById('result-modal').classList.add('hidden');
     mapWrapper.classList.remove('result-mode');
@@ -264,7 +271,7 @@ function launchRoundUI(roundNum) {
     
     document.getElementById('host-next-round-btn').classList.add('hidden-screen');
 
-    gameLocations = allLocations; // PAS DE MÉLANGE EN MODE DEV !
+    gameLocations = allLocations; 
     
     viewer.resize(); 
     viewer.loadScene(gameLocations[currentRound - 1].id);
@@ -299,7 +306,7 @@ function syncGameFromDB(room) {
     document.getElementById('total-round-display').innerText = totalRounds;
     document.getElementById('round-display').innerText = currentRound;
 
-    gameLocations = allLocations; // PAS DE MÉLANGE EN MODE DEV !
+    gameLocations = allLocations;
 
     switchScreen('game-ui');
 
@@ -336,6 +343,7 @@ function syncGameFromDB(room) {
 // 7. PRÉPARATION 360 & CARTE LEAFLET
 // ==========================================
 let hasValidated = false;
+let marker = null; // 📍 FIX : J'avais effacé cette ligne !
 
 const pannellumScenes = {};
 allLocations.forEach(loc => {
@@ -400,7 +408,6 @@ async function processRoundResult(isManual = true) {
         const distance = Math.sqrt(Math.pow(targetLocation.x - clickX, 2) + Math.pow(targetLocation.y - clickY, 2));
         let displayDistance = Math.round(distance);
         
-        // Comme c'est le mode dev et que les maps sont à 0, le score sera faux, c'est normal !
         if (displayDistance <= 2) { 
             displayDistance = 0; 
             myScore = maxScorePerRound; 
@@ -446,6 +453,7 @@ async function processRoundResult(isManual = true) {
     }, 500);
 }
 
+// 📍 FIX : J'ai retiré la ligne qui causait le crash (Cannot read properties of null)
 function updateLeaderboardDisplay() {
     const lbContent = document.getElementById('leaderboard-content');
     lbContent.innerHTML = '';
@@ -475,11 +483,6 @@ function updateLeaderboardDisplay() {
                 </div>
                 <span>${myP.score}</span>
             </div>`;
-    }
-    
-    if (players.length > 0 && myPlayer) {
-        const me = players.find(p => p.id === myPlayer.id);
-        if(me) document.getElementById('header-score').innerText = me.score;
     }
 }
 
