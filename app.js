@@ -14,7 +14,7 @@ const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 // ==========================================
 const allLocations = [
     { id: 'Lieu14', x: 0, y: 0 }, 
-    { id: 'Lieu16', x: 0, y: 0 },
+    { id: 'Lieu16', x: 339.9851, y: 576.1043 }, // 📍 Coordonnées que tu m'as données !
     { id: 'Lieu20', x: 0, y: 0 }, { id: 'Lieu21', x: 0, y: 0 }, { id: 'Lieu22', x: 0, y: 0 },
     { id: 'Lieu23', x: 0, y: 0 }, { id: 'Lieu24', x: 0, y: 0 }, { id: 'Lieu25', x: 0, y: 0 },
     { id: 'Lieu26', x: 0, y: 0 }, { id: 'Lieu27', x: 0, y: 0 }, { id: 'Lieu28', x: 0, y: 0 },
@@ -221,12 +221,11 @@ function updateLobbyUI() {
 }
 
 // ==========================================
-// 6. LE MOTEUR DU JEU SANS TIMER (MODE DEV)
+// 6. LE MOTEUR DU JEU MANUEL (MODE DEV)
 // ==========================================
 
-function seededShuffle(array, seedStr) {
-    return array; // Pas de mélange, respecte l'ordre exact.
-}
+// Pas de mélange aléatoire : respecte l'ordre exact.
+function seededShuffle(array, seedStr) { return array; }
 
 document.getElementById('start-game-btn').addEventListener('click', async () => {
     totalRounds = allLocations.length; 
@@ -256,6 +255,10 @@ function launchRoundUI(roundNum) {
     document.getElementById('total-round-display').innerText = totalRounds;
     document.getElementById('round-display').innerText = currentRound;
     
+    // Fixe le timer à l'infini visuellement
+    const timerDisplay = document.getElementById('timer-display');
+    if(timerDisplay) timerDisplay.innerText = "∞";
+
     switchScreen('game-ui');
     
     gameLayer.clearLayers(); 
@@ -281,7 +284,7 @@ function launchRoundUI(roundNum) {
     const announcerSub = document.getElementById('round-subtitle');
     
     announcerText.childNodes[0].nodeValue = "ROUND " + currentRound;
-    announcerSub.innerText = "(" + gameLocations[currentRound - 1].id + ")";
+    if(announcerSub) announcerSub.innerText = "(" + gameLocations[currentRound - 1].id + ")";
     
     announcerText.style.animation = 'none';
     void announcerText.offsetWidth; 
@@ -305,6 +308,9 @@ function syncGameFromDB(room) {
 
     document.getElementById('total-round-display').innerText = totalRounds;
     document.getElementById('round-display').innerText = currentRound;
+    
+    const timerDisplay = document.getElementById('timer-display');
+    if(timerDisplay) timerDisplay.innerText = "∞";
 
     gameLocations = allLocations;
 
@@ -343,7 +349,7 @@ function syncGameFromDB(room) {
 // 7. PRÉPARATION 360 & CARTE LEAFLET
 // ==========================================
 let hasValidated = false;
-let marker = null; // 📍 FIX : J'avais effacé cette ligne !
+let marker = null; // 📍 FIX : Création de la variable du marqueur
 
 const pannellumScenes = {};
 allLocations.forEach(loc => {
@@ -453,7 +459,7 @@ async function processRoundResult(isManual = true) {
     }, 500);
 }
 
-// 📍 FIX : J'ai retiré la ligne qui causait le crash (Cannot read properties of null)
+// FIX: Pas de bug si tu n'as pas de score "header" dans ton HTML local
 function updateLeaderboardDisplay() {
     const lbContent = document.getElementById('leaderboard-content');
     lbContent.innerHTML = '';
