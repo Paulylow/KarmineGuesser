@@ -182,8 +182,9 @@ document.getElementById('disconnect-btn').addEventListener('click', async () => 
 // 5. SYNCHRONISATION TEMPS RÉEL
 // ==========================================
 function setupRealtimeSubscriptions() {
+    // 📍 FIX : On enlève le filtre sur le room_id pour que les suppressions (DELETE) soient bien captées.
     supabaseClient.channel('players_channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${currentRoom.id}` }, payload => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, payload => {
             fetchPlayers();
         }).subscribe();
 
@@ -211,6 +212,9 @@ function updateLobbyUI() {
     const lobbyPlayersDiv = document.getElementById('lobby-players');
     lobbyPlayersDiv.innerHTML = '';
     
+    const countEl = document.getElementById('player-count');
+    if(countEl) countEl.innerText = `${players.length} Joueur${players.length > 1 ? 's' : ''}`;
+    
     players.forEach(p => {
         const isMe = p.id === myPlayer.id;
         const avatarUrl = `https://minotar.net/helm/${p.mc_pseudo}/100.png`;
@@ -231,13 +235,16 @@ function updateLobbyUI() {
 // 6. LE MOTEUR DU JEU DE PRODUCTION
 // ==========================================
 function getSeededRandom(seed) { let x = Math.sin(seed++) * 10000; return x - Math.floor(x); }
-function seededShuffle(array, seedStr) {
+
+function getGameLocations(seedStr) {
+    let copy = [...allLocations];
     let seed = 0;
     for (let i = 0; i < seedStr.length; i++) seed += seedStr.charCodeAt(i);
-    for (let i = array.length - 1; i > 0; i--) {
+    for (let i = copy.length - 1; i > 0; i--) {
         const j = Math.floor(getSeededRandom(seed++) * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+        [copy[i], copy[j]] = [copy[j], copy[i]];
     }
+    return copy;
 }
 
 document.getElementById('start-game-btn').addEventListener('click', async () => {
@@ -267,8 +274,7 @@ function launchRoundUI(roundNum) {
     mapWrapper.classList.remove('result-mode');
     guessBtn.innerText = "Placer le point"; guessBtn.disabled = true;
 
-    seededShuffle(allLocations, currentRoom.room_code);
-    gameLocations = allLocations.slice(0, totalRounds); 
+    gameLocations = getGameLocations(currentRoom.room_code).slice(0, totalRounds); 
     
     viewer.resize();
     viewer.loadScene(gameLocations[currentRound - 1].id);
@@ -292,7 +298,7 @@ function launchRoundUI(roundNum) {
         map.invalidateSize(); 
         resetMapZoom();
         enableMapClick();
-        startTimerDB(); 
+        startTimerDB(false);
     }, delay);
 }
 
@@ -305,8 +311,7 @@ function syncGameFromDB(room) {
     document.getElementById('total-round-display').innerText = totalRounds;
     document.getElementById('round-display').innerText = currentRound;
 
-    seededShuffle(allLocations, currentRoom.room_code);
-    gameLocations = allLocations.slice(0, totalRounds);
+    gameLocations = getGameLocations(currentRoom.room_code).slice(0, totalRounds);
 
     switchScreen('game-ui');
 
@@ -315,18 +320,8 @@ function syncGameFromDB(room) {
         viewer.loadScene(gameLocations[currentRound - 1].id);
         map.invalidateSize(); resetMapZoom();
 
-        const remainingMs = currentRoom.round_end_time - Date.now();
-        if (remainingMs > 0) {
-            enableMapClick();
-            startTimerDB();
-        } else {
-            document.getElementById('distanceDisplay').innerText = "Temps écoulé !";
-            document.getElementById('result-overlay').classList.remove('hidden');
-            document.getElementById('result-modal').classList.remove('hidden');
-            mapWrapper.classList.add('result-mode');
-            hasValidated = true;
-            startWaitingLobby();
-        }
+        enableMapClick();
+        startTimerDB(true);
     }, 100);
 }
 
@@ -370,14 +365,23 @@ function resetMapZoom() {
 // ==========================================
 // 8. JEU, RÉSULTATS & TIMER SUPABASE
 // ==========================================
-function startTimerDB() {
+function startTimerDB(isSync = false) {
     hasValidated = false;
     isTransitioning = false;
-    
     clearInterval(timerInterval);
+
+    let endTime = currentRoom.round_end_time;
+    let remainingMs = endTime - Date.now();
+
+    if (remainingMs < 0 || remainingMs > (currentRoom.round_time * 1000 + 5000)) {
+        let fallbackTime = isSync ? (currentRoom.round_time * 1000) - 5000 : (currentRoom.round_time * 1000);
+        if(fallbackTime < 5000) fallbackTime = 5000;
+        endTime = Date.now() + fallbackTime;
+    }
+    
     timerInterval = setInterval(() => {
-        const remainingMs = currentRoom.round_end_time - Date.now();
-        timeLeft = Math.ceil(remainingMs / 1000);
+        const ms = endTime - Date.now();
+        timeLeft = Math.ceil(ms / 1000);
         
         if (timeLeft < 0) timeLeft = 0;
         timerDisplay.innerText = timeLeft;
@@ -430,7 +434,6 @@ async function processRoundResult() {
             myScore = maxScorePerRound; 
         } 
         else { 
-            // 📍 SCORING SÉVÈRE : -25 points par bloc d'écart !
             myScore = Math.round(maxScorePerRound - (distance * 25)); 
             if (myScore < 0) myScore = 0; 
         }
@@ -475,7 +478,7 @@ function updateLeaderboardDisplay() {
         lbContent.innerHTML += `
             <div class="lb-row ${p.id === myPlayer.id ? 'me' : ''}">
                 <div style="display:flex; align-items:center;">
-                    <span style="width: 20px; font-size: 13px;">#${i+1}</span>
+                    <span style="min-width: 25px; display: inline-block; font-size: 13px;">#${i+1}</span>
                     <img src="https://minotar.net/helm/${p.mc_pseudo}/30.png" class="lb-head" onerror="this.src='https://minotar.net/helm/Steve/30.png'">
                     <span>${p.rp_name}</span>
                 </div>
@@ -489,7 +492,7 @@ function updateLeaderboardDisplay() {
         lbContent.innerHTML += `
             <div class="lb-row divider me">
                 <div style="display:flex; align-items:center;">
-                    <span style="width: 20px; font-size: 13px;">#${myIndex+1}</span>
+                    <span style="min-width: 25px; display: inline-block; font-size: 13px;">#${myIndex+1}</span>
                     <img src="https://minotar.net/helm/${myP.mc_pseudo}/30.png" class="lb-head" onerror="this.src='https://minotar.net/helm/Steve/30.png'">
                     <span>${myP.rp_name}</span>
                 </div>
@@ -557,6 +560,26 @@ function showPodium() {
             <div class="podium-score">${p3.score}</div>` : ''}
         </div>
     `;
+
+    let othersHtml = '';
+    for(let i = 3; i < players.length; i++) {
+        let p = players[i];
+        othersHtml += `
+        <div class="player-item">
+            <span style="font-weight: 900; font-size: 18px; color: #888; min-width: 30px;">#${i+1}</span>
+            <img src="https://minotar.net/helm/${p.mc_pseudo}/40.png" class="mc-head" onerror="this.src='https://minotar.net/helm/Steve/40.png'">
+            <div class="player-info">
+                <span class="player-rpname">${p.rp_name}</span>
+                <span class="player-pseudo" style="font-size: 14px;">Score : <strong style="color:var(--cyan);">${p.score}</strong></span>
+            </div>
+        </div>`;
+    }
+    
+    const othersDiv = document.getElementById('podium-others');
+    if(othersHtml && othersDiv) {
+        othersDiv.innerHTML = othersHtml;
+        othersDiv.classList.remove('hidden-screen');
+    }
 }
 
 document.getElementById('return-lobby-btn').addEventListener('click', async () => {
