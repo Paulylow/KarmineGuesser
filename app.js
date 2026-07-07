@@ -10,9 +10,10 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // ==========================================
-// 2. CONFIGURATION DES LIEUX (49 MAPS COMPLET)
+// 2. CONFIGURATION DES LIEUX (62 MAPS COMPLETES)
 // ==========================================
 const allLocations = [
+    // --- 49 MAPS NORMALES ---
     { id: 'Lieu1', x: 634.0625, y: 809.5625 }, { id: 'Lieu2', x: 377.5, y: 779.4375 }, 
     { id: 'Lieu3', x: 496.375, y: 992.4375 }, { id: 'Lieu4', x: 293.06264472481286, y: 958.6056737754375 },
     { id: 'Lieu5', x: 505.5625, y: 730.3125 }, { id: 'Lieu6', x: 273.3125, y: 912.1875 },
@@ -37,7 +38,15 @@ const allLocations = [
     { id: 'Lieu44', x: 546.8892, y: 950.0575 }, { id: 'Lieu45', x: 555.4707, y: 1015.7725 },
     { id: 'Lieu46', x: 515.5625, y: 979.4375 }, { id: 'Lieu47', x: 702.8177, y: 1070.2103 },
     { id: 'Lieu48', x: 676.5000, y: 958.6875 }, { id: 'Lieu49', x: 651.4352, y: 775.5089 },
-    { id: 'Lieu50', x: 640.7326, y: 840.1270 }
+    { id: 'Lieu50', x: 640.7326, y: 840.1270 },
+    // --- 13 MAPS S (NOUVELLE CARTE) ---
+    { id: 'Lieu01S', x: 542.3125, y: 435.3125 }, { id: 'Lieu02S', x: 464.6875, y: 539.7500 },
+    { id: 'Lieu03S', x: 630.5876, y: 549.9345 }, { id: 'Lieu04S', x: 680.5000, y: 554.2500 },
+    { id: 'Lieu05S', x: 695.3750, y: 460.1250 }, { id: 'Lieu06S', x: 549.0000, y: 408.3750 },
+    { id: 'Lieu07S', x: 701.3943, y: 458.4237 }, { id: 'Lieu08S', x: 475.3125, y: 462.0000 },
+    { id: 'Lieu09S', x: 859.2403, y: 981.2919 }, { id: 'Lieu10S', x: 783.3238, y: 1149.1233 },
+    { id: 'Lieu11S', x: 844.7365, y: 1251.6055 }, { id: 'Lieu12S', x: 755.9325, y: 1166.0462 },
+    { id: 'Lieu13S', x: 779.1274, y: 1032.9935 }
 ];
 
 const maxScorePerRound = 5000;
@@ -182,7 +191,6 @@ document.getElementById('disconnect-btn').addEventListener('click', async () => 
 // 5. SYNCHRONISATION TEMPS RÉEL
 // ==========================================
 function setupRealtimeSubscriptions() {
-    // 📍 FIX : On enlève le filtre sur le room_id pour que les suppressions (DELETE) soient bien captées.
     supabaseClient.channel('players_channel')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, payload => {
             fetchPlayers();
@@ -276,8 +284,16 @@ function launchRoundUI(roundNum) {
 
     gameLocations = getGameLocations(currentRoom.room_code).slice(0, totalRounds); 
     
+    const currentLocId = gameLocations[currentRound - 1].id;
     viewer.resize();
-    viewer.loadScene(gameLocations[currentRound - 1].id);
+    viewer.loadScene(currentLocId);
+    
+    // 📍 MÉCANIQUE DE CHANGEMENT DE MAP
+    if (currentLocId.endsWith('S')) {
+        mapOverlay.setUrl('maps/map2.png');
+    } else {
+        mapOverlay.setUrl('maps/map.png');
+    }
     
     const announcer = document.getElementById('round-announcer');
     const announcerText = document.getElementById('round-title-text');
@@ -316,8 +332,17 @@ function syncGameFromDB(room) {
     switchScreen('game-ui');
 
     setTimeout(() => {
+        const currentLocId = gameLocations[currentRound - 1].id;
         viewer.resize();
-        viewer.loadScene(gameLocations[currentRound - 1].id);
+        viewer.loadScene(currentLocId);
+        
+        // 📍 MÉCANIQUE DE CHANGEMENT DE MAP (POUR CEUX QUI FONT F5)
+        if (currentLocId.endsWith('S')) {
+            mapOverlay.setUrl('maps/map2.png');
+        } else {
+            mapOverlay.setUrl('maps/map.png');
+        }
+
         map.invalidateSize(); resetMapZoom();
 
         enableMapClick();
@@ -346,7 +371,9 @@ const viewer = pannellum.viewer('panorama', {
 
 const bounds = [[0, 0], [1427, 1427]];
 const map = L.map('map', { crs: L.CRS.Simple, maxZoom: 4, zoomSnap: 0, zoomDelta: 0.5, zoomControl: false, attributionControl: false, maxBounds: bounds, maxBoundsViscosity: 1.0 });
-L.imageOverlay('maps/map.png', bounds).addTo(map);
+
+// 📍 GESTION DYNAMIQUE DU CALQUE DE LA MAP
+let mapOverlay = L.imageOverlay('maps/map.png', bounds).addTo(map);
 const gameLayer = L.layerGroup().addTo(map);
 
 const guessBtn = document.getElementById('guess-btn');
