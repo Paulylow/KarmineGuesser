@@ -46,7 +46,6 @@
 
     <div id="lobby-screen" class="screen hidden-screen">
         <div class="lobby-container">
-            <!-- 📍 Compteur de joueurs ajouté ici -->
             <h1 class="lobby-title">SALLE D'ATTENTE (<span id="display-room-code" style="color:var(--cyan);">...</span>)<br>
             <span id="player-count" style="font-size: 18px; color: #888; display: block; margin-top: 5px; font-family: 'Satoshi', sans-serif; text-transform: none;">0 Joueur</span></h1>
             
@@ -60,11 +59,8 @@
                     <div class="setting-item">
                         <label>Nombre de Rounds</label>
                         <select id="setting-rounds" class="kg-select">
-                            <option value="3">3 Rounds</option>
-                            <option value="5" selected>5 Rounds</option>
-                            <option value="10">10 Rounds</option>
-                            <option value="20">20 Rounds</option>
-                            <option value="49">Tous les lieux (49)</option>
+                            <option value="49" selected>Lieux normaux (49)</option>
+                            <option value="62">Tout + Lieux S (62)</option>
                         </select>
                     </div>
                     <div class="setting-item">
@@ -132,7 +128,6 @@
             
             <div class="podium" id="podium-content"></div>
             
-            <!-- 📍 Liste des autres joueurs sous le podium -->
             <div id="podium-others" class="players-list hidden-screen" style="margin-top: 30px; margin-bottom: 0;"></div>
 
             <button id="return-lobby-btn" class="guess-btn" style="max-width: 300px; margin-top: 30px;">Nouvelle Partie</button>
