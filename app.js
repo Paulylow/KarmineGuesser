@@ -225,7 +225,7 @@ function setupRealtimeSubscriptions() {
             
             if (currentRoom.status === 'playing') {
                 if (oldRoom.status === 'waiting') {
-                    // 📍 FIX F5 : On efface TOUTE la mémoire des rounds au lancement d'une game
+                    // 📍 FIX F5 : On efface TOUTE la mémoire locale des clics au lancement d'une game
                     localStorage.removeItem('kg_guesses_' + currentRoom.room_code);
                     launchRoundUI(currentRoom.current_round);
                 } else if (oldRoom.current_round !== currentRoom.current_round) {
@@ -284,7 +284,7 @@ function getGameLocations(seedStr) {
 document.getElementById('start-game-btn').addEventListener('click', async () => {
     // 📍 FIX F5 : Sécurité nettoyage mémoire
     localStorage.removeItem('kg_guesses_' + currentRoom.room_code);
-    
+
     totalRounds = parseInt(document.getElementById('setting-rounds').value);
     roundTime = parseInt(document.getElementById('setting-time').value);
     const endTime = Date.now() + 2000 + (roundTime * 1000); 
@@ -372,7 +372,7 @@ function syncGameFromDB(room) {
 
         map.invalidateSize(); resetMapZoom();
 
-        // 📍 FIX F5 : On vérifie si on a déjà joué ce round pour tout restaurer visuellement
+        // 📍 FIX F5 VISUEL : On lit la mémoire, et si on a déjà joué on redessine tout !
         let guesses = JSON.parse(localStorage.getItem('kg_guesses_' + currentRoom.room_code) || '{}');
         let pastGuess = guesses[currentRound];
         
@@ -408,7 +408,6 @@ function syncGameFromDB(room) {
 
             startTimerDB(true);
         } else {
-            // Pas encore joué !
             enableMapClick();
             startTimerDB(true);
         }
@@ -437,6 +436,7 @@ const viewer = pannellum.viewer('panorama', {
 const bounds = [[0, 0], [1427, 1427]];
 const map = L.map('map', { crs: L.CRS.Simple, maxZoom: 4, zoomSnap: 0, zoomDelta: 0.5, zoomControl: false, attributionControl: false, maxBounds: bounds, maxBoundsViscosity: 1.0 });
 
+// 📍 GESTION DYNAMIQUE DU CALQUE DE LA MAP
 let mapOverlay = L.imageOverlay('maps/map.png', bounds).addTo(map);
 const gameLayer = L.layerGroup().addTo(map);
 
@@ -470,7 +470,7 @@ function startTimerDB(isSync = false) {
         endTime = Date.now() + fallbackTime;
     }
     
-    // 📍 Si on revient d'un F5, hasValidated est mis à jour
+    // 📍 Si on revient d'un F5, on bloque la validation automatique du chrono à zéro
     let guesses = JSON.parse(localStorage.getItem('kg_guesses_' + currentRoom.room_code) || '{}');
     if (guesses[currentRound]) {
         hasValidated = true;
@@ -546,7 +546,7 @@ async function processRoundResult() {
         myGuess = { timeout: true };
     }
 
-    // 📍 FIX F5 : On sauvegarde les infos détaillées ET on met à jour la base de données 
+    // 📍 FIX F5 VISUEL : On enregistre le détail du clic ET on met à jour Supabase une seule fois
     let guesses = JSON.parse(localStorage.getItem('kg_guesses_' + currentRoom.room_code) || '{}');
     if (!guesses[currentRound]) {
         guesses[currentRound] = myGuess;
