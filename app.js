@@ -225,7 +225,6 @@ function setupRealtimeSubscriptions() {
             
             if (currentRoom.status === 'playing') {
                 if (oldRoom.status === 'waiting') {
-                    // 📍 FIX F5 : On efface TOUTE la mémoire locale des clics au lancement d'une game
                     localStorage.removeItem('kg_guesses_' + currentRoom.room_code);
                     launchRoundUI(currentRoom.current_round);
                 } else if (oldRoom.current_round !== currentRoom.current_round) {
@@ -282,7 +281,6 @@ function getGameLocations(seedStr) {
 }
 
 document.getElementById('start-game-btn').addEventListener('click', async () => {
-    // 📍 FIX F5 : Sécurité nettoyage mémoire
     localStorage.removeItem('kg_guesses_' + currentRoom.room_code);
 
     totalRounds = parseInt(document.getElementById('setting-rounds').value);
@@ -372,7 +370,6 @@ function syncGameFromDB(room) {
 
         map.invalidateSize(); resetMapZoom();
 
-        // 📍 FIX F5 VISUEL : On lit la mémoire, et si on a déjà joué on redessine tout !
         let guesses = JSON.parse(localStorage.getItem('kg_guesses_' + currentRoom.room_code) || '{}');
         let pastGuess = guesses[currentRound];
         
@@ -457,23 +454,22 @@ function resetMapZoom() {
 // 8. JEU, RÉSULTATS & TIMER SUPABASE
 // ==========================================
 function startTimerDB(isSync = false) {
-    hasValidated = false;
-    isTransitioning = false;
     clearInterval(timerInterval);
+    isTransitioning = false;
+
+    // 📍 FIX : On regarde tout de suite si on a déjà joué le round (pour le F5)
+    let guesses = JSON.parse(localStorage.getItem('kg_guesses_' + currentRoom.room_code) || '{}');
+    hasValidated = !!guesses[currentRound]; 
 
     let endTime = currentRoom.round_end_time;
     let remainingMs = endTime - Date.now();
 
-    if (remainingMs < 0 || remainingMs > (currentRoom.round_time * 1000 + 5000)) {
+    // 📍 On ne rajoute du temps de secours QUE si le joueur N'A PAS validé son point.
+    // S'il a déjà validé, il faut juste que le chrono tombe à 0 pour lancer la transition.
+    if (!hasValidated && (remainingMs < 0 || remainingMs > (currentRoom.round_time * 1000 + 5000))) {
         let fallbackTime = isSync ? (currentRoom.round_time * 1000) - 5000 : (currentRoom.round_time * 1000);
         if(fallbackTime < 5000) fallbackTime = 5000;
         endTime = Date.now() + fallbackTime;
-    }
-    
-    // 📍 Si on revient d'un F5, on bloque la validation automatique du chrono à zéro
-    let guesses = JSON.parse(localStorage.getItem('kg_guesses_' + currentRoom.room_code) || '{}');
-    if (guesses[currentRound]) {
-        hasValidated = true;
     }
     
     timerInterval = setInterval(() => {
@@ -546,7 +542,6 @@ async function processRoundResult() {
         myGuess = { timeout: true };
     }
 
-    // 📍 FIX F5 VISUEL : On enregistre le détail du clic ET on met à jour Supabase une seule fois
     let guesses = JSON.parse(localStorage.getItem('kg_guesses_' + currentRoom.room_code) || '{}');
     if (!guesses[currentRound]) {
         guesses[currentRound] = myGuess;
