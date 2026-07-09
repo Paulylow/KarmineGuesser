@@ -61,7 +61,7 @@ const allLocations = [
     { id: 'Lieu48', x: 704.4396, y: 1008.7184 }, { id: 'Lieu49', x: 679.8125, y: 825.0625 },
     { id: 'Lieu50', x: 669.6250, y: 889.3125 },
 
-    // --- MAPS S (13 Lieux, INCHANGÉES) ---
+    // --- MAPS S (13 Lieux) ---
     { id: 'Lieu01S', x: 542.3125, y: 435.3125 }, { id: 'Lieu02S', x: 464.6875, y: 539.7500 },
     { id: 'Lieu03S', x: 630.5876, y: 549.9345 }, { id: 'Lieu04S', x: 680.5000, y: 554.2500 },
     { id: 'Lieu05S', x: 695.3750, y: 460.1250 }, { id: 'Lieu06S', x: 549.0000, y: 408.3750 },
@@ -225,6 +225,7 @@ function setupRealtimeSubscriptions() {
             
             if (currentRoom.status === 'playing') {
                 if (oldRoom.status === 'waiting') {
+                    // 📍 FIX F5 : On efface TOUTE la mémoire locale des clics au lancement d'une game
                     localStorage.removeItem('kg_guesses_' + currentRoom.room_code);
                     launchRoundUI(currentRoom.current_round);
                 } else if (oldRoom.current_round !== currentRoom.current_round) {
@@ -281,6 +282,7 @@ function getGameLocations(seedStr) {
 }
 
 document.getElementById('start-game-btn').addEventListener('click', async () => {
+    // 📍 FIX F5 : Sécurité nettoyage mémoire
     localStorage.removeItem('kg_guesses_' + currentRoom.room_code);
 
     totalRounds = parseInt(document.getElementById('setting-rounds').value);
@@ -370,6 +372,7 @@ function syncGameFromDB(room) {
 
         map.invalidateSize(); resetMapZoom();
 
+        // 📍 FIX F5 VISUEL : On lit la mémoire, et si on a déjà joué on redessine tout !
         let guesses = JSON.parse(localStorage.getItem('kg_guesses_' + currentRoom.room_code) || '{}');
         let pastGuess = guesses[currentRound];
         
@@ -457,15 +460,14 @@ function startTimerDB(isSync = false) {
     clearInterval(timerInterval);
     isTransitioning = false;
 
-    // 📍 FIX : On regarde tout de suite si on a déjà joué le round (pour le F5)
+    // 📍 On vérifie ici si on est déjà en mode attente (via F5)
     let guesses = JSON.parse(localStorage.getItem('kg_guesses_' + currentRoom.room_code) || '{}');
     hasValidated = !!guesses[currentRound]; 
 
     let endTime = currentRoom.round_end_time;
     let remainingMs = endTime - Date.now();
 
-    // 📍 On ne rajoute du temps de secours QUE si le joueur N'A PAS validé son point.
-    // S'il a déjà validé, il faut juste que le chrono tombe à 0 pour lancer la transition.
+    // Le fallback (rajout de temps en cas de lag) n'est appliqué QUE si la manche n'est pas terminée
     if (!hasValidated && (remainingMs < 0 || remainingMs > (currentRoom.round_time * 1000 + 5000))) {
         let fallbackTime = isSync ? (currentRoom.round_time * 1000) - 5000 : (currentRoom.round_time * 1000);
         if(fallbackTime < 5000) fallbackTime = 5000;
@@ -611,32 +613,50 @@ function updateLeaderboardDisplay() {
 function startWaitingLobby() {
     if(isTransitioning) return;
     isTransitioning = true;
-    transitionTime = 5;
 
-    function updateMsg() {
-        if (currentRound >= totalRounds) msgBox.innerHTML = `Partie terminée ! Résultats dans <span id="auto-next-timer">${transitionTime}</span>s...`;
-        else msgBox.innerHTML = `Prochain round dans <span id="auto-next-timer">${transitionTime}</span>s...`;
+    // 📍 FIX : On indexe le chrono de transition sur l'heure absolue de fin de manche !
+    let transitionEndTime = currentRoom.round_end_time + 5000;
+
+    function updateMsg(t) {
+        if (currentRound >= totalRounds) msgBox.innerHTML = `Partie terminée ! Résultats dans <span id="auto-next-timer">${t}</span>s...`;
+        else msgBox.innerHTML = `Prochain round dans <span id="auto-next-timer">${t}</span>s...`;
     }
-    updateMsg();
+
+    async function executeTransition() {
+        if (currentRound >= totalRounds) {
+            showPodium();
+        } else {
+            if (myPlayer.is_host) {
+                const nextRound = currentRound + 1;
+                const endTime = Date.now() + 2000 + (currentRoom.round_time * 1000);
+                await supabaseClient.from('rooms').update({ current_round: nextRound, round_end_time: endTime }).eq('id', currentRoom.id);
+            } else {
+                msgBox.innerHTML = "L'hôte lance la suite...";
+            }
+        }
+    }
 
     clearInterval(waitInterval);
-    waitInterval = setInterval(async () => {
-        transitionTime--;
-        updateMsg();
+
+    // Vérification immédiate
+    let msLeft = transitionEndTime - Date.now();
+    if (msLeft <= 0) {
+        executeTransition();
+        return;
+    }
+
+    let t = Math.ceil(msLeft / 1000);
+    updateMsg(t);
+
+    waitInterval = setInterval(() => {
+        let currentMsLeft = transitionEndTime - Date.now();
+        let currentT = Math.ceil(currentMsLeft / 1000);
         
-        if (transitionTime <= 0) {
+        if (currentT <= 0) {
             clearInterval(waitInterval);
-            if (currentRound >= totalRounds) {
-                showPodium();
-            } else {
-                if (myPlayer.is_host) {
-                    const nextRound = currentRound + 1;
-                    const endTime = Date.now() + 2000 + (currentRoom.round_time * 1000);
-                    await supabaseClient.from('rooms').update({ current_round: nextRound, round_end_time: endTime }).eq('id', currentRoom.id);
-                } else {
-                    msgBox.innerHTML = "L'hôte lance la suite...";
-                }
-            }
+            executeTransition();
+        } else {
+            updateMsg(currentT);
         }
     }, 1000);
 }
