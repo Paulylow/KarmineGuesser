@@ -10,36 +10,58 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // ==========================================
-// 2. CONFIGURATION DES LIEUX (62 MAPS COMPLETES)
+// 2. CONFIGURATION DES LIEUX (82 MAPS AU TOTAL)
 // ==========================================
 const allLocations = [
-    // --- 49 MAPS NORMALES ---
-    { id: 'Lieu1', x: 634.0625, y: 809.5625 }, { id: 'Lieu2', x: 377.5, y: 779.4375 }, 
-    { id: 'Lieu3', x: 496.375, y: 992.4375 }, { id: 'Lieu4', x: 293.06264472481286, y: 958.6056737754375 },
-    { id: 'Lieu5', x: 505.5625, y: 730.3125 }, { id: 'Lieu6', x: 273.3125, y: 912.1875 },
-    { id: 'Lieu7', x: 930.6405894730218, y: 841.7385479362847 }, { id: 'Lieu8', x: 944.4112590713203, y: 630.8679668762923 },
-    { id: 'Lieu9', x: 1047.249507588725, y: 551.226798181108 }, { id: 'Lieu10', x: 1072.8678913777107, y: 601.7731135589685 },
-    { id: 'Lieu11', x: 1019.6200190354904, y: 582.2998689750975 }, { id: 'Lieu12', x: 1037.2179155741558, y: 152.22015514203198 },
-    { id: 'Lieu13', x: 875.5116584116552, y: 375.5173030727776 }, { id: 'Lieu14', x: 861.6655, y: 403.4375 },
-    { id: 'Lieu15', x: 728.6828241093921, y: 428.20462478819366 }, { id: 'Lieu16', x: 339.9851, y: 576.1043 },
-    { id: 'Lieu17', x: 631.5622699443798, y: 327.5529679698231 }, { id: 'Lieu18', x: 482.4032682804576, y: 230.4027768947771 }, 
-    { id: 'Lieu19', x: 662.6477195672688, y: 100.57379001605248 }, { id: 'Lieu20', x: 242.5000, y: 548.5000 },
-    { id: 'Lieu21', x: 171.6449, y: 491.9308 }, { id: 'Lieu22', x: 192.7500, y: 331.0625 },
-    { id: 'Lieu23', x: 252.5609, y: 302.1883 }, { id: 'Lieu24', x: 379.8125, y: 127.5625 },
-    { id: 'Lieu25', x: 411.0148, y: 36.8385 }, { id: 'Lieu26', x: 560.6031, y: 19.3311 },
-    { id: 'Lieu27', x: 909.5080, y: 175.1678 }, { id: 'Lieu28', x: 725.9193, y: 255.7433 },
-    { id: 'Lieu29', x: 651.7683, y: 405.2676 }, { id: 'Lieu31', x: 443.7500, y: 576.2500 },
-    { id: 'Lieu32', x: 759.4661, y: 730.2397 }, { id: 'Lieu33', x: 789.3750, y: 848.2500 },
-    { id: 'Lieu34', x: 838.7500, y: 756.9375 }, { id: 'Lieu35', x: 770.3897, y: 649.3879 },
-    { id: 'Lieu36', x: 640.5000, y: 642.6250 }, { id: 'Lieu37', x: 582.7500, y: 626.5000 },
-    { id: 'Lieu38', x: 620.3312, y: 696.4872 }, { id: 'Lieu39', x: 643.1747, y: 864.7542 },
-    { id: 'Lieu40', x: 652.6250, y: 870.3125 }, { id: 'Lieu41', x: 614.4375, y: 787.1250 },
-    { id: 'Lieu42', x: 591.7486, y: 828.8663 }, { id: 'Lieu43', x: 546.6431, y: 832.0674 },
-    { id: 'Lieu44', x: 546.8892, y: 950.0575 }, { id: 'Lieu45', x: 555.4707, y: 1015.7725 },
-    { id: 'Lieu46', x: 515.5625, y: 979.4375 }, { id: 'Lieu47', x: 702.8177, y: 1070.2103 },
-    { id: 'Lieu48', x: 676.5000, y: 958.6875 }, { id: 'Lieu49', x: 651.4352, y: 775.5089 },
-    { id: 'Lieu50', x: 640.7326, y: 840.1270 },
-    // --- 13 MAPS S (NOUVELLE CARTE) ---
+    // --- NOUVELLES MAPS (51 à 69) ---
+    { id: 'Lieu51', x: 847.8125, y: 994.7500 },
+    { id: 'Lieu52', x: 604.5588, y: 1255.9341 },
+    { id: 'Lieu53', x: 1003.5625, y: 1158.3750 },
+    { id: 'Lieu54', x: 1030.6875, y: 1164.4375 },
+    { id: 'Lieu55', x: 1066.5299, y: 1226.3263 },
+    { id: 'Lieu56', x: 1124.5233, y: 1368.7362 },
+    { id: 'Lieu57', x: 1034.5151, y: 1022.4939 },
+    { id: 'Lieu58', x: 378.1561, y: 1211.2139 },
+    { id: 'Lieu59', x: 348.6190, y: 1287.7043 },
+    { id: 'Lieu60', x: 417.4366, y: 1205.6444 },
+    { id: 'Lieu61', x: 331.6250, y: 857.7500 },
+    { id: 'Lieu62', x: 340.5000, y: 715.2500 },
+    { id: 'Lieu63', x: 217.9746, y: 588.5313 },
+    { id: 'Lieu64', x: 324.6824, y: 482.7359 },
+    { id: 'Lieu65', x: 538.1064, y: 566.1243 },
+    { id: 'Lieu66', x: 508.1001, y: 535.8958 },
+    { id: 'Lieu67', x: 799.4185, y: 636.1330 },
+    { id: 'Lieu68', x: 788.6496, y: 655.5323 },
+    { id: 'Lieu69', x: 752.6326, y: 647.2914 },
+
+    // --- ANCIENNES MAPS RECALIBRÉES (1 à 50) ---
+    { id: 'Lieu1', x: 662.1915, y: 858.3021 }, { id: 'Lieu2', x: 403.4951, y: 822.6823 },
+    { id: 'Lieu3', x: 525.0693, y: 1043.3823 }, { id: 'Lieu4', x: 319.2103, y: 1005.3425 },
+    { id: 'Lieu5', x: 534.4802, y: 779.3732 }, { id: 'Lieu6', x: 300.1875, y: 963.0625 },
+    { id: 'Lieu7', x: 960.3475, y: 888.1856 }, { id: 'Lieu8', x: 972.6813, y: 680.3058 },
+    { id: 'Lieu9', x: 1074.1563, y: 599.9996 }, { id: 'Lieu10', x: 1097.2812, y: 650.8047 },
+    { id: 'Lieu11', x: 1047.2500, y: 633.0000 }, { id: 'Lieu12', x: 1063.5178, y: 202.0918 },
+    { id: 'Lieu13', x: 907.1887, y: 431.3909 }, { id: 'Lieu14', x: 889.3125, y: 452.4375 },
+    { id: 'Lieu15', x: 757.6250, y: 478.0625 }, { id: 'Lieu16', x: 368.6853, y: 626.0669 },
+    { id: 'Lieu17', x: 660.7772, y: 376.1984 }, { id: 'Lieu18', x: 511.2500, y: 280.1250 },
+    { id: 'Lieu19', x: 690.2458, y: 149.6259 }, { id: 'Lieu20', x: 271.2500, y: 598.5625 },
+    { id: 'Lieu21', x: 200.7336, y: 541.3627 }, { id: 'Lieu22', x: 221.5000, y: 381.1250 },
+    { id: 'Lieu23', x: 279.9774, y: 351.1623 }, { id: 'Lieu24', x: 407.4757, y: 178.2404 },
+    { id: 'Lieu25', x: 440.0000, y: 86.9375 }, { id: 'Lieu26', x: 594.5090, y: 30.3612 },
+    { id: 'Lieu27', x: 884.9337, y: 89.6694 }, { id: 'Lieu28', x: 756.2022, y: 304.8372 },
+    { id: 'Lieu29', x: 680.5796, y: 456.3451 }, { id: 'Lieu31', x: 471.8750, y: 626.3750 },
+    { id: 'Lieu32', x: 796.7876, y: 774.0793 }, { id: 'Lieu33', x: 817.5625, y: 897.3750 },
+    { id: 'Lieu34', x: 866.2679, y: 805.8624 }, { id: 'Lieu35', x: 796.9979, y: 693.8644 },
+    { id: 'Lieu36', x: 668.8125, y: 704.0625 }, { id: 'Lieu37', x: 611.1250, y: 677.0625 },
+    { id: 'Lieu38', x: 648.8494, y: 746.1520 }, { id: 'Lieu39', x: 653.4653, y: 922.5392 },
+    { id: 'Lieu40', x: 692.7263, y: 934.4301 }, { id: 'Lieu41', x: 642.6875, y: 825.1250 },
+    { id: 'Lieu42', x: 619.6303, y: 876.2198 }, { id: 'Lieu43', x: 576.1941, y: 877.6546 },
+    { id: 'Lieu44', x: 575.9375, y: 998.2500 }, { id: 'Lieu45', x: 582.5000, y: 1065.4375 },
+    { id: 'Lieu46', x: 544.1875, y: 1028.2500 }, { id: 'Lieu47', x: 732.5071, y: 1120.2766 },
+    { id: 'Lieu48', x: 704.4396, y: 1008.7184 }, { id: 'Lieu49', x: 679.8125, y: 825.0625 },
+    { id: 'Lieu50', x: 669.6250, y: 889.3125 },
+
+    // --- MAPS S (13 Lieux, INCHANGÉES) ---
     { id: 'Lieu01S', x: 542.3125, y: 435.3125 }, { id: 'Lieu02S', x: 464.6875, y: 539.7500 },
     { id: 'Lieu03S', x: 630.5876, y: 549.9345 }, { id: 'Lieu04S', x: 680.5000, y: 554.2500 },
     { id: 'Lieu05S', x: 695.3750, y: 460.1250 }, { id: 'Lieu06S', x: 549.0000, y: 408.3750 },
@@ -202,7 +224,11 @@ function setupRealtimeSubscriptions() {
             currentRoom = payload.new;
             
             if (currentRoom.status === 'playing') {
-                if (oldRoom.status === 'waiting' || oldRoom.current_round !== currentRoom.current_round) {
+                if (oldRoom.status === 'waiting') {
+                    // 📍 FIX F5 : On efface TOUTE la mémoire des rounds au lancement d'une game
+                    localStorage.removeItem('kg_guesses_' + currentRoom.room_code);
+                    launchRoundUI(currentRoom.current_round);
+                } else if (oldRoom.current_round !== currentRoom.current_round) {
                     launchRoundUI(currentRoom.current_round);
                 }
             }
@@ -256,6 +282,9 @@ function getGameLocations(seedStr) {
 }
 
 document.getElementById('start-game-btn').addEventListener('click', async () => {
+    // 📍 FIX F5 : Sécurité nettoyage mémoire
+    localStorage.removeItem('kg_guesses_' + currentRoom.room_code);
+    
     totalRounds = parseInt(document.getElementById('setting-rounds').value);
     roundTime = parseInt(document.getElementById('setting-time').value);
     const endTime = Date.now() + 2000 + (roundTime * 1000); 
@@ -288,7 +317,6 @@ function launchRoundUI(roundNum) {
     viewer.resize();
     viewer.loadScene(currentLocId);
     
-    // 📍 MÉCANIQUE DE CHANGEMENT DE MAP
     if (currentLocId.endsWith('S')) {
         mapOverlay.setUrl('maps/map2.png');
     } else {
@@ -336,7 +364,6 @@ function syncGameFromDB(room) {
         viewer.resize();
         viewer.loadScene(currentLocId);
         
-        // 📍 MÉCANIQUE DE CHANGEMENT DE MAP (POUR CEUX QUI FONT F5)
         if (currentLocId.endsWith('S')) {
             mapOverlay.setUrl('maps/map2.png');
         } else {
@@ -345,8 +372,46 @@ function syncGameFromDB(room) {
 
         map.invalidateSize(); resetMapZoom();
 
-        enableMapClick();
-        startTimerDB(true);
+        // 📍 FIX F5 : On vérifie si on a déjà joué ce round pour tout restaurer visuellement
+        let guesses = JSON.parse(localStorage.getItem('kg_guesses_' + currentRoom.room_code) || '{}');
+        let pastGuess = guesses[currentRound];
+        
+        if (pastGuess) {
+            hasValidated = true;
+            guessBtn.disabled = true;
+            map.off('click');
+
+            const targetLocation = gameLocations[currentRound - 1];
+            const pointsToFit = [[targetLocation.y, targetLocation.x]];
+
+            if (pastGuess.timeout) {
+                document.getElementById('distanceDisplay').innerText = "Temps écoulé !";
+                document.getElementById('scoreDisplay').innerText = "0";
+            } else {
+                marker = L.marker([pastGuess.lat, pastGuess.lng]).addTo(gameLayer);
+                pointsToFit.push([pastGuess.lat, pastGuess.lng]);
+
+                document.getElementById('distanceDisplay').innerText = pastGuess.distance + " blocs";
+                document.getElementById('scoreDisplay').innerText = pastGuess.score;
+
+                L.polyline([[pastGuess.lat, pastGuess.lng], [targetLocation.y, targetLocation.x]], {color: '#00B4D8', weight: 3, dashArray: '10, 10'}).addTo(gameLayer);
+            }
+
+            L.circleMarker([targetLocation.y, targetLocation.x], {color: '#0A0A0A', fillColor: '#00B4D8', fillOpacity: 1, radius: 8}).addTo(gameLayer);
+
+            document.getElementById('result-overlay').classList.remove('hidden');
+            document.getElementById('result-modal').classList.remove('hidden');
+            mapWrapper.classList.add('result-mode');
+
+            map.invalidateSize();
+            map.fitBounds(pointsToFit, { padding: [60, 60] });
+
+            startTimerDB(true);
+        } else {
+            // Pas encore joué !
+            enableMapClick();
+            startTimerDB(true);
+        }
     }, 100);
 }
 
@@ -372,7 +437,6 @@ const viewer = pannellum.viewer('panorama', {
 const bounds = [[0, 0], [1427, 1427]];
 const map = L.map('map', { crs: L.CRS.Simple, maxZoom: 4, zoomSnap: 0, zoomDelta: 0.5, zoomControl: false, attributionControl: false, maxBounds: bounds, maxBoundsViscosity: 1.0 });
 
-// 📍 GESTION DYNAMIQUE DU CALQUE DE LA MAP
 let mapOverlay = L.imageOverlay('maps/map.png', bounds).addTo(map);
 const gameLayer = L.layerGroup().addTo(map);
 
@@ -404,6 +468,12 @@ function startTimerDB(isSync = false) {
         let fallbackTime = isSync ? (currentRoom.round_time * 1000) - 5000 : (currentRoom.round_time * 1000);
         if(fallbackTime < 5000) fallbackTime = 5000;
         endTime = Date.now() + fallbackTime;
+    }
+    
+    // 📍 Si on revient d'un F5, hasValidated est mis à jour
+    let guesses = JSON.parse(localStorage.getItem('kg_guesses_' + currentRoom.room_code) || '{}');
+    if (guesses[currentRound]) {
+        hasValidated = true;
     }
     
     timerInterval = setInterval(() => {
@@ -446,7 +516,9 @@ async function processRoundResult() {
 
     const targetLocation = gameLocations[currentRound - 1];
     let myScore = 0;
+    let displayDistance = 0;
     const pointsToFit = [[targetLocation.y, targetLocation.x]];
+    let myGuess = null;
 
     if (marker !== null) {
         const clickY = marker.getLatLng().lat;
@@ -454,7 +526,7 @@ async function processRoundResult() {
         pointsToFit.push([clickY, clickX]); 
 
         const distance = Math.sqrt(Math.pow(targetLocation.x - clickX, 2) + Math.pow(targetLocation.y - clickY, 2));
-        let displayDistance = Math.round(distance);
+        displayDistance = Math.round(distance);
         
         if (displayDistance <= 2) { 
             displayDistance = 0; 
@@ -467,13 +539,23 @@ async function processRoundResult() {
 
         document.getElementById('distanceDisplay').innerText = displayDistance + " blocs";
         L.polyline([[clickY, clickX], [targetLocation.y, targetLocation.x]], {color: '#00B4D8', weight: 3, dashArray: '10, 10'}).addTo(gameLayer);
+        
+        myGuess = { lat: clickY, lng: clickX, score: myScore, distance: displayDistance };
     } else {
         document.getElementById('distanceDisplay').innerText = "Temps écoulé !";
+        myGuess = { timeout: true };
     }
 
-    const meInDB = players.find(p => p.id === myPlayer.id);
-    const currentDBScore = meInDB ? meInDB.score : myPlayer.score;
-    await supabaseClient.from('players').update({ score: currentDBScore + myScore }).eq('id', myPlayer.id);
+    // 📍 FIX F5 : On sauvegarde les infos détaillées ET on met à jour la base de données 
+    let guesses = JSON.parse(localStorage.getItem('kg_guesses_' + currentRoom.room_code) || '{}');
+    if (!guesses[currentRound]) {
+        guesses[currentRound] = myGuess;
+        localStorage.setItem('kg_guesses_' + currentRoom.room_code, JSON.stringify(guesses));
+
+        const meInDB = players.find(p => p.id === myPlayer.id);
+        const currentDBScore = meInDB ? meInDB.score : myPlayer.score;
+        await supabaseClient.from('players').update({ score: currentDBScore + myScore }).eq('id', myPlayer.id);
+    }
 
     document.getElementById('scoreDisplay').innerText = myScore;
     L.circleMarker([targetLocation.y, targetLocation.x], {color: '#0A0A0A', fillColor: '#00B4D8', fillOpacity: 1, radius: 8}).addTo(gameLayer);
